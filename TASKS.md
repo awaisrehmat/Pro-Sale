@@ -57,6 +57,8 @@
 ## Phase 5: Documentation
 
 - [x] Create README.md
+- [x] Create APPLICATION_FLOWS.md
+  - Documents the intended authentication, inventory, purchase, sale, cancellation, payment, reporting, and rollback flows.
 - [x] Create USER_MANUAL.md
 - [x] Create DEVELOPMENT_GUIDE.md
 - [x] Verify the complete system

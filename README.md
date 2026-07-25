@@ -2,6 +2,8 @@
 
 A single-user procurement, sales, payment, and inventory application. Laravel 13 provides a Sanctum-protected REST API; Vue 3, Vite, Pinia-ready state infrastructure, Axios, and Tailwind CSS provide the responsive interface.
 
+Project behavior and implementation progress are defined in `APPLICATION_FLOWS.md`. Operational instructions are in `USER_MANUAL.md`, and individual development tasks are tracked in `TASKS.md`.
+
 ## Features
 
 - Products, suppliers, customers, purchases, sales, payments, and stock ledger
