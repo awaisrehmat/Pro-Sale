@@ -40,7 +40,23 @@ The Stock page is the audit ledger. Opening stock, purchases, sales, cancellatio
 
 ## Payments and balances
 
-Record supplier payments against supplier outstanding balances and customer payments against customer balances. The application rejects an amount above the current outstanding balance. Party ledger endpoints show opening balance, transactions, payments, and remaining balance.
+The voucher direction follows normal accounting language:
+
+- **Money in — Receipt Voucher:** money received from a customer.
+- **Money out — Payment Voucher:** money paid to a supplier.
+
+To record an installment:
+
+1. Open Payments and select **New record**.
+2. Choose the voucher direction.
+3. Select the supplier or customer.
+4. Select an outstanding purchase or sale from **Apply to transaction**.
+5. Enter the installment amount, method, date, and optional reference.
+6. Save the voucher.
+
+The purchase or sale immediately updates its paid amount, due amount, and payment status. Repeat these steps for later installments. Open the transaction with its eye icon to see the complete chronological payment history.
+
+Select **General / opening balance** only when the payment is not for a particular purchase or sale. The application rejects an amount above either the selected document balance or the party’s overall outstanding balance. Party ledgers show opening balance, transactions, vouchers, and remaining balance.
 
 Use the eye icon beside a payment to open its receipt. The receipt shows the party, amount, payment method, reference, linked transaction, and reversal status, and can be printed.
 

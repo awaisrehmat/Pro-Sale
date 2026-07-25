@@ -2,7 +2,7 @@
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\{Customer,Payment,Product,Purchase,Sale,StockMovement,Supplier};
-use App\Services\StockService;
+use App\Services\{PaymentService,StockService};
 use App\Support\Numbers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +28,13 @@ class OperationsController extends Controller {
         return $this->ok($s->adjust($d,$r->user()->id),'Stock adjusted successfully.',201);}
     public function payments(Request $r){return $this->ok(Payment::with('supplier','customer')->when($r->payment_type,fn($q,$v)=>$q->where('payment_type',$v))->when($r->date_from,fn($q,$v)=>$q->whereDate('payment_date','>=',$v))->when($r->date_to,fn($q,$v)=>$q->whereDate('payment_date','<=',$v))->latest('payment_date')->paginate(20));}
     public function payment(Payment $payment){return $this->ok($payment->load('supplier','customer','purchase','sale'));}
-    public function pay(Request $r){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>'nullable|required_if:payment_type,supplier_payment|exists:suppliers,id','customer_id'=>'nullable|required_if:payment_type,customer_payment|exists:customers,id','amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
-        return DB::transaction(function()use($d,$r){if($d['payment_type']==='supplier_payment'){$party=Supplier::lockForUpdate()->findOrFail($d['supplier_id']);$due=$party->opening_balance+$party->purchases()->where('status','completed')->sum('grand_total')-$party->payments()->where('is_reversed',false)->sum('amount');}
-            else{$party=Customer::lockForUpdate()->findOrFail($d['customer_id']);$due=$party->opening_balance+$party->sales()->where('status','completed')->sum('grand_total')-$party->payments()->where('is_reversed',false)->sum('amount');}
-            if($d['amount']>$due)throw ValidationException::withMessages(['amount'=>"Payment cannot exceed outstanding amount of {$due}."]);
-            $p=Payment::create([...$d,'payment_number'=>Numbers::next(Payment::class,'payment_number','PAY'),'created_by'=>$r->user()->id]);return $this->ok($p,'Payment recorded successfully.',201);});
-    }
+    public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>'nullable|required_if:payment_type,supplier_payment|exists:suppliers,id','customer_id'=>'nullable|required_if:payment_type,customer_payment|exists:customers,id','purchase_id'=>'nullable|exists:purchases,id','sale_id'=>'nullable|exists:sales,id','amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
+        return $this->ok($service->record($d,$r->user()->id),$d['payment_type']==='customer_payment'?'Receipt voucher created successfully.':'Payment voucher created successfully.',201);}
+    public function outstanding(Request $r){$d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
+        $rows=$d['payment_type']==='supplier_payment'
+            ?Purchase::where('supplier_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('purchase_date')->get()->map(fn($p)=>['id'=>$p->id,'number'=>$p->purchase_number,'date'=>$p->purchase_date->format('Y-m-d'),'total'=>(float)$p->grand_total,'paid'=>(float)$p->paid_amount,'due'=>(float)$p->due_amount])
+            :Sale::where('customer_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('sale_date')->get()->map(fn($s)=>['id'=>$s->id,'number'=>$s->sale_number,'date'=>$s->sale_date->format('Y-m-d'),'total'=>(float)$s->grand_total,'paid'=>(float)$s->paid_amount,'due'=>(float)$s->due_amount]);
+        return $this->ok($rows);}
     public function report(string $type,Request $r){
         $payload=match($type){
             'stock'=>$this->stockReport($r,false),

@@ -238,13 +238,17 @@ Create matching stock movement
 ```text
 Select supplier
     ↓
-Calculate outstanding balance
+Choose an outstanding purchase or general/opening balance
     ↓
 Enter payment amount and method
     ↓
-Reject amount above outstanding balance
+Reject amount above the selected purchase or party outstanding balance
     ↓
-Create supplier payment
+Create a Payment Voucher (money leaving the company)
+    ↓
+Update purchase paid, due, and payment status when allocated
+    ↓
+Append the voucher to the purchase payment history
     ↓
 Supplier ledger balance decreases
 ```
@@ -259,13 +263,17 @@ opening balance + completed purchases - non-reversed payments
 ```text
 Select customer
     ↓
-Calculate outstanding balance
+Choose an outstanding sale or general/opening balance
     ↓
 Enter payment amount and method
     ↓
-Reject amount above outstanding balance
+Reject amount above the selected sale or party outstanding balance
     ↓
-Create customer payment
+Create a Receipt Voucher (money received by the company)
+    ↓
+Update sale paid, due, and payment status when allocated
+    ↓
+Append the voucher to the sale payment history
     ↓
 Customer ledger balance decreases
 ```
@@ -320,6 +328,9 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Filtered reports with summaries, CSV export, and print layout
 - [x] Purchase and sale detail windows with printable transaction documents
 - [x] Printable supplier and customer payment receipts
+- [x] Transaction-linked partial payment allocation and installment history
+- [x] Receipt Vouchers for incoming customer money
+- [x] Payment Vouchers for outgoing supplier money
 - [x] Consistent SVG icon system for navigation and actions
 - [x] Realistic transactionally consistent demonstration data
 - [x] Automated core-flow tests
