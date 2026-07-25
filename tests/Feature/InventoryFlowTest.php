@@ -1,0 +1,21 @@
+<?php
+namespace Tests\Feature;
+use App\Models\{Customer,Product,Supplier,User};
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+class InventoryFlowTest extends TestCase {
+    use RefreshDatabase;
+    private User $user; private Supplier $supplier; private Customer $customer; private Product $product;
+    protected function setUp():void{parent::setUp();$this->user=User::factory()->create();Sanctum::actingAs($this->user);
+        $this->supplier=Supplier::create(['name'=>'Supplier','opening_balance'=>0]);$this->customer=Customer::create(['name'=>'Customer','opening_balance'=>0]);
+        $this->product=Product::create(['name'=>'Widget','sku'=>'W-1','unit'=>'piece','purchase_price'=>10,'sale_price'=>20,'average_cost'=>0,'minimum_stock_level'=>2,'current_stock'=>0]);}
+    private function purchase(float $qty=10,float $price=10,float $paid=0){return $this->postJson('/api/purchases',['purchase_date'=>'2026-07-25','supplier_id'=>$this->supplier->id,'payment_method'=>'cash','discount'=>0,'additional_cost'=>0,'paid_amount'=>$paid,'items'=>[['product_id'=>$this->product->id,'quantity'=>$qty,'unit_price'=>$price,'discount'=>0]]]);}
+    private function sale(float $qty=3,float $price=20,float $paid=0){return $this->postJson('/api/sales',['sale_date'=>'2026-07-25','customer_id'=>$this->customer->id,'payment_method'=>'cash','discount'=>0,'tax'=>0,'paid_amount'=>$paid,'items'=>[['product_id'=>$this->product->id,'quantity'=>$qty,'unit_price'=>$price,'discount'=>0]]]);}
+    public function test_product_creation_and_login():void{$this->postJson('/api/products',['name'=>'Other','sku'=>'O-1','unit'=>'box','purchase_price'=>2,'sale_price'=>3,'minimum_stock_level'=>1,'is_active'=>true])->assertCreated();$this->assertDatabaseHas('products',['sku'=>'O-1']);}
+    public function test_purchase_increases_stock_and_calculates_weighted_cost():void{$this->purchase(10,10)->assertCreated();$this->purchase(10,20)->assertCreated();$this->assertEquals(20,(float)$this->product->fresh()->current_stock);$this->assertEquals(15,(float)$this->product->fresh()->average_cost);$this->assertDatabaseCount('stock_movements',2);}
+    public function test_sale_decreases_stock_and_saves_cost_for_profit():void{$this->purchase()->assertCreated();$this->sale(3)->assertCreated();$this->assertEquals(7,(float)$this->product->fresh()->current_stock);$this->assertDatabaseHas('sale_items',['quantity'=>3,'unit_cost'=>10]);$this->getJson('/api/reports/profit')->assertOk()->assertJsonPath('data.0.gross_profit',30);}
+    public function test_insufficient_stock_rolls_back_sale():void{$this->purchase(2)->assertCreated();$this->sale(3)->assertUnprocessable();$this->assertDatabaseCount('sales',0);$this->assertEquals(2,(float)$this->product->fresh()->current_stock);}
+    public function test_purchase_and_sale_cancellations_reverse_stock():void{$purchase=$this->purchase(10)->json('data');$sale=$this->sale(3)->json('data');$this->postJson('/api/sales/'.$sale['id'].'/cancel')->assertOk();$this->assertEquals(10,(float)$this->product->fresh()->current_stock);$this->postJson('/api/purchases/'.$purchase['id'].'/cancel')->assertOk();$this->assertEquals(0,(float)$this->product->fresh()->current_stock);}
+    public function test_payments_update_balance_and_overpayment_is_rejected():void{$this->purchase(10,10)->assertCreated();$this->postJson('/api/payments',['payment_date'=>'2026-07-25','payment_type'=>'supplier_payment','supplier_id'=>$this->supplier->id,'amount'=>40,'payment_method'=>'cash'])->assertCreated();$this->getJson('/api/suppliers/'.$this->supplier->id.'/ledger')->assertJsonPath('data.outstanding',60);$this->postJson('/api/payments',['payment_date'=>'2026-07-25','payment_type'=>'supplier_payment','supplier_id'=>$this->supplier->id,'amount'=>61,'payment_method'=>'cash'])->assertUnprocessable();}
+}

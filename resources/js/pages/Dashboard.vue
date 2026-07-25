@@ -1,0 +1,5 @@
+<script setup>
+import {onMounted,ref} from 'vue';import api from '../services/api';const d=ref({});
+onMounted(async()=>d.value=(await api.get('/dashboard')).data.data);const money=v=>Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2});
+</script>
+<template><div class="page-head"><h1>Dashboard</h1><span class="muted">{{new Date().toLocaleDateString()}}</span></div><div class="cards"><div class="card" v-for="[k,l] in [['total_products','Products'],['total_stock','Stock quantity'],['stock_value','Stock value'],['purchases_today','Purchases today'],['sales_today','Sales today'],['gross_profit_month','Gross profit this month']]" :key="k"><div class="muted">{{l}}</div><div class="metric">{{k==='total_products'?d[k]:money(d[k])}}</div></div></div><div class="grid-2"><div class="panel"><h2>Low stock</h2><table><tr v-for="p in d.low_stock" :key="p.id"><td>{{p.name}}</td><td>{{p.current_stock}} {{p.unit}}</td></tr></table></div><div class="panel"><h2>Recent sales</h2><table><tr v-for="s in d.recent_sales" :key="s.id"><td>{{s.sale_number}}</td><td>{{s.customer?.name}}</td><td>{{money(s.grand_total)}}</td></tr></table></div></div></template>

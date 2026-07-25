@@ -1,0 +1,4 @@
+<script setup>
+import {ref,onMounted} from 'vue';import api from '../services/api';const type=ref('stock'),rows=ref([]),columns=ref([]);
+async function load(){const d=(await api.get('/reports/'+type.value)).data.data;rows.value=d.data||d;columns.value=rows.value.length?Object.keys(rows.value[0]).filter(k=>typeof rows.value[0][k]!=='object').slice(0,10):[]}onMounted(load);
+</script><template><div class="page-head"><h1>Reports</h1></div><div class="toolbar"><select v-model="type" @change="load"><option value="stock">Stock</option><option value="low-stock">Low stock</option><option value="purchases">Purchases</option><option value="sales">Sales</option><option value="profit">Profit</option></select></div><div class="panel" style="padding:0;overflow:auto"><table><tr><th v-for="c in columns">{{c.replaceAll('_',' ')}}</th></tr><tr v-for="r in rows"><td v-for="c in columns">{{r[c]}}</td></tr></table></div></template>
