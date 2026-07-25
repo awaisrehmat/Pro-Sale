@@ -2,6 +2,7 @@
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "./services/api";
+import AppIcon from "./components/common/AppIcon.vue";
 const route = useRoute(),
     router = useRouter(),
     mobileOpen = ref(false),
@@ -9,28 +10,28 @@ const route = useRoute(),
         () => route.path != "/login" && localStorage.getItem("token"),
     );
 const groups = [
-    { label: "Overview", links: [["/", "DB", "Dashboard"]] },
+    { label: "Overview", links: [["/", "dashboard", "Dashboard"]] },
     {
         label: "Operations",
         links: [
-            ["/purchases", "PU", "Purchases"],
-            ["/sales", "SA", "Sales"],
-            ["/payments", "PY", "Payments"],
+            ["/purchases", "purchase", "Purchases"],
+            ["/sales", "sale", "Sales"],
+            ["/payments", "payment", "Payments"],
         ],
     },
     {
         label: "Directory",
         links: [
-            ["/products", "PR", "Products"],
-            ["/suppliers", "SU", "Suppliers"],
-            ["/customers", "CU", "Customers"],
+            ["/products", "product", "Products"],
+            ["/suppliers", "supplier", "Suppliers"],
+            ["/customers", "customer", "Customers"],
         ],
     },
     {
         label: "Insights",
         links: [
-            ["/stock-movements", "ST", "Stock ledger"],
-            ["/reports", "RP", "Reports"],
+            ["/stock-movements", "stock", "Stock ledger"],
+            ["/reports", "report", "Reports"],
         ],
     },
 ];
@@ -71,7 +72,7 @@ async function logout() {
                         :to="to"
                         :key="to"
                         @click="mobileOpen = false"
-                        ><span class="nav-icon">{{ icon }}</span
+                        ><span class="nav-icon"><AppIcon :name="icon" :size="15"/></span
                         >{{ label }}</RouterLink
                     >
                 </section>
@@ -84,16 +85,12 @@ async function logout() {
                         <!-- <small>Single user</small> -->
                     </div>
                 </div>
-                <button class="icon-button" title="Log out" @click="logout">
-                    ↗
-                </button>
+                <button class="icon-button" title="Log out" @click="logout"><AppIcon name="logout"/></button>
             </div>
         </aside>
         <div class="workspace">
             <header class="topbar">
-                <button class="mobile-menu" @click="mobileOpen = true">
-                    ☰
-                </button>
+                <button class="mobile-menu" @click="mobileOpen = true"><AppIcon name="menu" :size="20"/></button>
                 <div>
                     <span class="eyebrow">Workspace</span
                     ><strong>{{ title }}</strong>

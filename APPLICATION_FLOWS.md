@@ -318,6 +318,9 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Dashboard and reports
 - [x] Responsive application shell and polished dashboard
 - [x] Filtered reports with summaries, CSV export, and print layout
+- [x] Purchase and sale detail windows with printable transaction documents
+- [x] Printable supplier and customer payment receipts
+- [x] Consistent SVG icon system for navigation and actions
 - [x] Realistic transactionally consistent demonstration data
 - [x] Automated core-flow tests
 - [x] Production frontend build

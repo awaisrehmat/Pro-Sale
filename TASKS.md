@@ -47,11 +47,14 @@
   - Includes KPI cards, seven-day activity, receivables/payables, low-stock alerts, and recent activity.
 - [x] Create product screens
 - [x] Create purchase screens
+  - Includes complete purchase detail modal and printable purchase document.
 - [x] Create sales screens
+  - Includes complete sales detail modal and printable customer invoice.
 - [x] Create stock screens
 - [x] Create supplier screens
 - [x] Create customer screens
 - [x] Create payment screens
+  - Includes linked party/transaction detail and printable payment receipt.
 - [x] Create reports
   - Includes report-specific summaries and filters, status indicators, CSV export, and print styling.
 - [x] Verify responsive layout

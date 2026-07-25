@@ -20,6 +20,8 @@ Create suppliers and customers before transactions. A seeded **Walk-in Customer*
 
 Saving immediately increases stock and records stock-ledger entries. A partly paid purchase leaves a supplier balance.
 
+To review or print a purchase, return to the Purchases list and select the eye icon in its Actions column. The detail window includes supplier information, all product lines, totals, payment status, and notes. Select **Print** for a clean purchase document.
+
 ## Record a sale
 
 1. Open Sales and choose **New sale**.
@@ -30,6 +32,8 @@ Saving immediately increases stock and records stock-ledger entries. A partly pa
 
 The form blocks saving when requested quantity exceeds stock. Saving reduces stock immediately.
 
+To review or print a sales invoice, open the Sales list and select the eye icon. Select **Print** from the invoice detail window.
+
 ## Stock and adjustments
 
 The Stock page is the audit ledger. Opening stock, purchases, sales, cancellations, and adjustments each produce a movement. For a correction, submit an increase or decrease adjustment with a date and reason. A decrease cannot take stock below zero.
@@ -37,6 +41,8 @@ The Stock page is the audit ledger. Opening stock, purchases, sales, cancellatio
 ## Payments and balances
 
 Record supplier payments against supplier outstanding balances and customer payments against customer balances. The application rejects an amount above the current outstanding balance. Party ledger endpoints show opening balance, transactions, payments, and remaining balance.
+
+Use the eye icon beside a payment to open its receipt. The receipt shows the party, amount, payment method, reference, linked transaction, and reversal status, and can be printed.
 
 ## Reports
 

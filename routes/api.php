@@ -13,6 +13,6 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('purchases',[TransactionController::class,'purchases']); Route::post('purchases',[TransactionController::class,'createPurchase']); Route::get('purchases/{purchase}',[TransactionController::class,'purchase']); Route::post('purchases/{purchase}/cancel',[TransactionController::class,'cancelPurchase']);
     Route::get('sales',[TransactionController::class,'sales']); Route::post('sales',[TransactionController::class,'createSale']); Route::get('sales/{sale}',[TransactionController::class,'sale']); Route::post('sales/{sale}/cancel',[TransactionController::class,'cancelSale']);
     Route::get('stock-movements',[OperationsController::class,'movements']); Route::post('stock-adjustments',[OperationsController::class,'adjust']);
-    Route::get('payments',[OperationsController::class,'payments']); Route::post('payments',[OperationsController::class,'pay']);
+    Route::get('payments',[OperationsController::class,'payments']); Route::post('payments',[OperationsController::class,'pay']); Route::get('payments/{payment}',[OperationsController::class,'payment']);
     Route::get('reports/{type}',[OperationsController::class,'report'])->whereIn('type',['stock','low-stock','purchases','sales','profit']);
 });

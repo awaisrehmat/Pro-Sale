@@ -6,4 +6,6 @@ class Payment extends Model {
     protected function casts(): array { return ['payment_date'=>'date','is_reversed'=>'boolean']; }
     public function supplier(){ return $this->belongsTo(Supplier::class); }
     public function customer(){ return $this->belongsTo(Customer::class); }
+    public function purchase(){ return $this->belongsTo(Purchase::class); }
+    public function sale(){ return $this->belongsTo(Sale::class); }
 }
