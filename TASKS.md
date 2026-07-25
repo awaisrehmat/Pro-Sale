@@ -36,6 +36,7 @@
 - [x] Create API resources
 - [x] Create API routes
 - [x] Create seeders
+  - Includes an idempotent realistic demo dataset with products, parties, purchases, sales, payments, balances, stock movements, and adjustments.
 - [x] Create feature and unit tests
   - 8 tests and 27 assertions pass.
 
@@ -43,6 +44,7 @@
 
 - [x] Create authentication screens
 - [x] Create dashboard
+  - Includes KPI cards, seven-day activity, receivables/payables, low-stock alerts, and recent activity.
 - [x] Create product screens
 - [x] Create purchase screens
 - [x] Create sales screens
@@ -51,6 +53,7 @@
 - [x] Create customer screens
 - [x] Create payment screens
 - [x] Create reports
+  - Includes report-specific summaries and filters, status indicators, CSV export, and print styling.
 - [x] Verify responsive layout
   - Compact desktop layout collapses to a single-column mobile layout.
 

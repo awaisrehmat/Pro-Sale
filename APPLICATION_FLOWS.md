@@ -316,11 +316,13 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Stock ledger and adjustments
 - [x] Supplier and customer payments
 - [x] Dashboard and reports
-- [x] Responsive frontend foundation
+- [x] Responsive application shell and polished dashboard
+- [x] Filtered reports with summaries, CSV export, and print layout
+- [x] Realistic transactionally consistent demonstration data
 - [x] Automated core-flow tests
 - [x] Production frontend build
 - [ ] Verification against a configured MySQL server
-- [ ] Full browser-based screen walkthrough
+- [ ] Full browser-based screen walkthrough on the target machine
 - [ ] Manual mobile-device review
 - [ ] Production deployment verification
 

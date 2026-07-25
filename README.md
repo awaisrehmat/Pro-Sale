@@ -34,6 +34,15 @@ php artisan serve
 
 For development, run `npm run dev` and `php artisan serve` in separate terminals. Demo records are created only when `SEED_DEMO_DATA=true`.
 
+To load the complete demonstration dataset:
+
+```powershell
+$env:SEED_DEMO_DATA='true'
+C:\php83\php.exe artisan db:seed
+```
+
+The dataset includes eight products, four suppliers, walk-in plus five named customers, five purchases, six sales, partial balances, and stock adjustments. It is safe to rerun: seeded directory records are reused and demonstration transactions are not duplicated.
+
 ## Testing
 
 ```bash

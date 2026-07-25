@@ -40,7 +40,16 @@ Record supplier payments against supplier outstanding balances and customer paym
 
 ## Reports
 
-Reports include Stock, Low Stock, Purchases, Sales, and Profit. Stock value is current quantity multiplied by average cost. Profit uses the unit cost saved when each sale occurred.
+Reports include Stock, Low Stock, Purchases, Sales, and Profit.
+
+1. Open **Reports** from the sidebar.
+2. Select a report tab.
+3. Choose the date range and any supplier, customer, product, payment, or stock-status filters available for that report.
+4. Select **Apply filters**.
+5. Review the summary cards above the detailed records.
+6. Select **Export CSV** for spreadsheet analysis or **Print** for a clean printable copy.
+
+Stock value is current quantity multiplied by average cost. Profit uses the unit cost saved when each sale occurred. Gross margin is gross profit divided by revenue.
 
 ## Cancellations
 
