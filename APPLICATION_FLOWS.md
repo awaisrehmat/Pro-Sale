@@ -332,6 +332,8 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Receipt Vouchers for incoming customer money
 - [x] Payment Vouchers for outgoing supplier money
 - [x] Consistent SVG icon system for navigation and actions
+- [x] User-facing serial numbers instead of internal database IDs
+- [x] Product names and SKUs in the stock ledger
 - [x] Realistic transactionally consistent demonstration data
 - [x] Automated core-flow tests
 - [x] Production frontend build

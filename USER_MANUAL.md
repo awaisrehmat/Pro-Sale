@@ -36,7 +36,7 @@ To review or print a sales invoice, open the Sales list and select the eye icon.
 
 ## Stock and adjustments
 
-The Stock page is the audit ledger. Opening stock, purchases, sales, cancellations, and adjustments each produce a movement. For a correction, submit an increase or decrease adjustment with a date and reason. A decrease cannot take stock below zero.
+The Stock page is the audit ledger. It shows a simple serial number, product name, SKU, movement date and type, transaction reference, quantity in/out, and resulting stock. Internal database IDs are never displayed. Opening stock, purchases, sales, cancellations, and adjustments each produce a movement. For a correction, submit an increase or decrease adjustment with a date and reason. A decrease cannot take stock below zero.
 
 ## Payments and balances
 

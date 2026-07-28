@@ -23,7 +23,7 @@ class OperationsController extends Controller {
             'supplier_due'=>(float)Purchase::where('status','completed')->sum('due_amount'),'customer_due'=>(float)Sale::where('status','completed')->sum('due_amount'),
             'activity'=>$activity,'recent_purchases'=>Purchase::with('supplier')->latest()->limit(5)->get(),'recent_sales'=>Sale::with('customer')->latest()->limit(5)->get()]);
     }
-    public function movements(Request $r){return $this->ok(StockMovement::with('product')->when($r->search,fn($q,$s)=>$q->where('reference_number','like',"%$s%"))->latest('movement_date')->paginate(20));}
+    public function movements(Request $r){return $this->ok(StockMovement::with('product')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('reference_number','like',"%$s%")->orWhere('movement_type','like',"%$s%")->orWhereHas('product',fn($p)=>$p->where('name','like',"%$s%")->orWhere('sku','like',"%$s%"))))->latest('movement_date')->paginate(20));}
     public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>'required|exists:products,id','adjustment_date'=>'required|date','adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
         return $this->ok($s->adjust($d,$r->user()->id),'Stock adjusted successfully.',201);}
     public function payments(Request $r){return $this->ok(Payment::with('supplier','customer')->when($r->payment_type,fn($q,$v)=>$q->where('payment_type',$v))->when($r->date_from,fn($q,$v)=>$q->whereDate('payment_date','>=',$v))->when($r->date_to,fn($q,$v)=>$q->whereDate('payment_date','<=',$v))->latest('payment_date')->paginate(20));}

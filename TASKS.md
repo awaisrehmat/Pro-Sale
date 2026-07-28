@@ -51,6 +51,7 @@
 - [x] Create sales screens
   - Includes complete sales detail modal and printable customer invoice.
 - [x] Create stock screens
+  - Ledger displays product name/SKU and user-facing serial numbers without exposing database IDs.
 - [x] Create supplier screens
 - [x] Create customer screens
 - [x] Create payment screens
