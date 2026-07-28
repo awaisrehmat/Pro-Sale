@@ -10,6 +10,8 @@
 
 Create suppliers and customers before transactions. A seeded **Walk-in Customer** is available for anonymous retail sales. Create each product with a unique SKU, unit, purchase/sale prices, minimum stock, and optional opening stock. Current stock cannot be typed over later.
 
+Record lists are paginated. Use **Previous** and **Next** below a table to move between pages. Search waits briefly while you type and then refreshes the results automatically.
+
 ## Record a purchase
 
 1. Open Purchases and choose **New purchase**.
@@ -19,6 +21,8 @@ Create suppliers and customers before transactions. A seeded **Walk-in Customer*
 5. Check subtotal, total, and due, then save.
 
 Saving immediately increases stock and records stock-ledger entries. A partly paid purchase leaves a supplier balance.
+
+The transaction summary remains visible while you add products. Every product row displays its calculated line total, and duplicate products are blocked.
 
 To review or print a purchase, return to the Purchases list and select the eye icon in its Actions column. The detail window includes supplier information, all product lines, totals, payment status, and notes. Select **Print** for a clean purchase document.
 
@@ -31,6 +35,8 @@ To review or print a purchase, return to the Purchases list and select the eye i
 5. Enter discount, tax, and paid amount, then save.
 
 The form blocks saving when requested quantity exceeds stock. Saving reduces stock immediately.
+
+Products with insufficient stock are highlighted before submission. The summary continuously shows subtotal, discount, tax, amount paid, and balance due.
 
 To review or print a sales invoice, open the Sales list and select the eye icon. Select **Print** from the invoice detail window.
 

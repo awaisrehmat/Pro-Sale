@@ -1,6 +1,6 @@
 <script setup>
-import {computed,onMounted,ref} from 'vue';import api from '../../services/api';import AppIcon from '../common/AppIcon.vue';
-const props=defineProps({resource:String,id:[Number,String]}),emit=defineEmits(['close']),record=ref(null),loading=ref(true),error=ref('');
+import {computed,onBeforeUnmount,onMounted,ref} from 'vue';import api from '../../services/api';import AppIcon from '../common/AppIcon.vue';
+const props=defineProps({resource:String,id:[Number,String]}),emit=defineEmits(['close']),record=ref(null),loading=ref(true),pdfLoading=ref(false),error=ref('');
 const isPurchase=computed(()=>props.resource==='purchases'),isSale=computed(()=>props.resource==='sales'),isPayment=computed(()=>props.resource==='payments');
 const title=computed(()=>isPurchase.value?'Purchase order':isSale.value?'Sales invoice':record.value?.payment_type==='customer_payment'?'Receipt voucher':'Payment voucher');
 const number=computed(()=>record.value?.purchase_number||record.value?.sale_number||record.value?.payment_number||'');
@@ -11,17 +11,20 @@ function formatDate(v){return v?new Date(v).toLocaleDateString(undefined,{year:'
 async function printDocument(){
  if(!isPayment.value){window.print();return}
  const popup=window.open('','_blank');
+ pdfLoading.value=true;
  try{
   const response=await api.get(`/payments/${record.value.id}/pdf`,{responseType:'blob'});
   const url=URL.createObjectURL(new Blob([response.data],{type:'application/pdf'}));
   if(popup)popup.location.href=url;else window.location.href=url;
   setTimeout(()=>URL.revokeObjectURL(url),60000);
- }catch(e){if(popup)popup.close();error.value=e.response?.data?.message||'Unable to generate voucher PDF.'}
+ }catch(e){if(popup)popup.close();error.value=e.response?.data?.message||'Unable to generate voucher PDF.'}finally{pdfLoading.value=false}
 }
-onMounted(async()=>{try{record.value=(await api.get(`/${props.resource}/${props.id}`)).data.data}catch(e){error.value=e.response?.data?.message||'Unable to load details.'}finally{loading.value=false}});
+function keydown(event){if(event.key==='Escape')emit('close')}
+onMounted(async()=>{document.body.style.overflow='hidden';window.addEventListener('keydown',keydown);try{record.value=(await api.get(`/${props.resource}/${props.id}`)).data.data}catch(e){error.value=e.response?.data?.message||'Unable to load details.'}finally{loading.value=false}});
+onBeforeUnmount(()=>{document.body.style.overflow='';window.removeEventListener('keydown',keydown)});
 </script>
 <template><Teleport to="body"><div class="modal-backdrop" @click.self="emit('close')"><section class="detail-modal">
-<div class="modal-toolbar no-print"><div><span class="eyebrow">{{title}}</span><strong>{{number}}</strong></div><div><button class="secondary with-icon" @click="printDocument"><AppIcon name="print"/>{{isPayment?'Open PDF':'Print'}}</button><button class="icon-only secondary" title="Close" @click="emit('close')"><AppIcon name="close"/></button></div></div>
+<div class="modal-toolbar no-print"><div><span class="eyebrow">{{title}}</span><strong>{{number}}</strong></div><div><button class="secondary with-icon" :disabled="pdfLoading" @click="printDocument"><span v-if="pdfLoading" class="spinner dark"></span><AppIcon v-else name="print"/>{{pdfLoading?'Generating…':isPayment?'Open PDF':'Print'}}</button><button class="icon-only secondary" title="Close" @click="emit('close')"><AppIcon name="close"/></button></div></div>
 <div v-if="loading" class="empty-state">Loading details…</div><div v-else-if="error" class="error">{{error}}</div>
 <article v-else class="print-document">
 <header class="document-head"><div><div class="document-logo">SM</div><h2>Stock Manager</h2><p>Procurement, sales & inventory</p></div><div class="document-title"><span>{{title}}</span><strong>{{number}}</strong><em class="status" :class="record.status==='cancelled'||record.is_reversed?'neutral':'success'">{{record.status||((record.is_reversed)?'Reversed':'Received')}}</em></div></header>

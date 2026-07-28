@@ -335,6 +335,9 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Consistent SVG icon system for navigation and actions
 - [x] User-facing serial numbers instead of internal database IDs
 - [x] Product names and SKUs in the stock ledger
+- [x] Paginated record lists with loading, empty, success, and error states
+- [x] Guided purchase and sale entry with live line totals and sticky summary
+- [x] Responsive branded login and consistent action feedback
 - [x] Realistic transactionally consistent demonstration data
 - [x] Automated core-flow tests
 - [x] Production frontend build

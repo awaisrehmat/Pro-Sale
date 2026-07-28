@@ -62,6 +62,7 @@
   - Includes report-specific summaries and filters, status indicators, CSV export, and print styling.
 - [x] Verify responsive layout
   - Compact desktop layout collapses to a single-column mobile layout.
+  - UX pass includes responsive login, paginated lists, formatted values, guided transaction entry, loading states, empty states, success feedback, and keyboard-friendly detail dismissal.
 
 ## Phase 5: Documentation
 
