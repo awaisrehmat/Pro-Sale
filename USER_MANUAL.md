@@ -58,7 +58,12 @@ The purchase or sale immediately updates its paid amount, due amount, and paymen
 
 Select **General / opening balance** only when the payment is not for a particular purchase or sale. The application rejects an amount above either the selected document balance or the party’s overall outstanding balance. Party ledgers show opening balance, transactions, vouchers, and remaining balance.
 
-Use the eye icon beside a payment to open its receipt. The receipt shows the party, amount, payment method, reference, linked transaction, and reversal status, and can be printed.
+Use the eye icon beside a payment to open its details. Select **Open PDF** to generate the official FPDF document:
+
+- Customer payments generate a **Receipt Voucher**.
+- Supplier payments generate a **Payment Voucher**.
+
+The PDF shows the party, amount in figures and words, payment method, reference, linked transaction, narration, voucher date, reversal status, and signature spaces. Use the browser PDF viewer to print or download it.
 
 ## Reports
 

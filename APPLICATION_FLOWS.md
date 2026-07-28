@@ -331,6 +331,7 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Transaction-linked partial payment allocation and installment history
 - [x] Receipt Vouchers for incoming customer money
 - [x] Payment Vouchers for outgoing supplier money
+- [x] Server-generated FPDF voucher documents with authenticated PDF delivery
 - [x] Consistent SVG icon system for navigation and actions
 - [x] User-facing serial numbers instead of internal database IDs
 - [x] Product names and SKUs in the stock ledger

@@ -1,5 +1,5 @@
 <?php
-use App\Http\Controllers\Api\{AuthController,OperationsController,PartyController,ProductController,TransactionController};
+use App\Http\Controllers\Api\{AuthController,OperationsController,PartyController,PdfController,ProductController,TransactionController};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,5 +14,6 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::get('sales',[TransactionController::class,'sales']); Route::post('sales',[TransactionController::class,'createSale']); Route::get('sales/{sale}',[TransactionController::class,'sale']); Route::post('sales/{sale}/cancel',[TransactionController::class,'cancelSale']);
     Route::get('stock-movements',[OperationsController::class,'movements']); Route::post('stock-adjustments',[OperationsController::class,'adjust']);
     Route::get('payments',[OperationsController::class,'payments']); Route::post('payments',[OperationsController::class,'pay']); Route::get('payments/outstanding',[OperationsController::class,'outstanding']); Route::get('payments/{payment}',[OperationsController::class,'payment']);
+    Route::get('payments/{payment}/pdf',[PdfController::class,'voucher']);
     Route::get('reports/{type}',[OperationsController::class,'report'])->whereIn('type',['stock','low-stock','purchases','sales','profit']);
 });

@@ -57,6 +57,7 @@
 - [x] Create payment screens
   - Includes linked party/transaction detail and printable payment receipt.
   - Supports Receipt Vouchers, Payment Vouchers, outstanding-document allocation, partial installments, and transaction payment history.
+  - Receipt and Payment Vouchers are generated as printable FPDF documents.
 - [x] Create reports
   - Includes report-specific summaries and filters, status indicators, CSV export, and print styling.
 - [x] Verify responsive layout
