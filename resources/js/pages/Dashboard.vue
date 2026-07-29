@@ -1,5 +1,5 @@
 <script setup>
-import {computed,onMounted,ref} from 'vue';import api from '../services/api';import AppIcon from '../components/common/AppIcon.vue';const d=ref({activity:[]}),loading=ref(true);
+import {computed,onMounted,ref} from 'vue';import api from '../services/api';import AppIcon from '../components/common/AppIcon.vue';import {can} from '../services/auth';const d=ref({activity:[]}),loading=ref(true);
 onMounted(async()=>{try{d.value=(await api.get('/dashboard')).data.data}finally{loading.value=false}});
 const money=v=>'PKR '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const maxActivity=computed(()=>Math.max(1,...(d.value.activity||[]).flatMap(x=>[x.sales,x.purchases])));
@@ -8,7 +8,7 @@ const metrics=computed(()=>[
  ['Sales this month',money(d.value.sales_month),'Revenue recorded','green','sale'],['Gross profit',money(d.value.gross_profit_month),'Current month','amber','report'],
 ]);
 </script>
-<template><div class="page-head"><div><span class="eyebrow">Business overview</span><h1>Good {{new Date().getHours()<12?'morning':new Date().getHours()<17?'afternoon':'evening'}}</h1><p class="page-subtitle">Here is what is happening across sales, purchasing, and inventory.</p></div><div class="page-actions"><RouterLink class="btn secondary with-icon" to="/purchases/new"><AppIcon name="purchase"/>New purchase</RouterLink><RouterLink class="btn with-icon" to="/sales/new"><AppIcon name="sale"/>New sale</RouterLink></div></div>
+<template><div class="page-head"><div><span class="eyebrow">Business overview</span><h1>Good {{new Date().getHours()<12?'morning':new Date().getHours()<17?'afternoon':'evening'}}</h1><p class="page-subtitle">Here is what is happening across sales, purchasing, and inventory.</p></div><div class="page-actions"><RouterLink v-if="can('purchases.create')" class="btn secondary with-icon" to="/purchases/new"><AppIcon name="purchase"/>New purchase</RouterLink><RouterLink v-if="can('sales.create')" class="btn with-icon" to="/sales/new"><AppIcon name="sale"/>New sale</RouterLink></div></div>
 <div v-if="loading" class="panel empty-state">Loading dashboard…</div><template v-else>
 <div class="metric-grid"><div class="metric-card" v-for="[label,value,note,tone,icon] in metrics" :key="label"><div class="metric-top"><span>{{label}}</span><span class="metric-icon" :class="tone"><AppIcon :name="icon"/></span></div><div class="metric-value">{{value}}</div><div class="metric-note">{{note}}</div></div></div>
 <div class="dashboard-grid"><section class="panel activity-panel"><div class="panel-head"><div><h2>7-day activity</h2><p>Sales and purchasing volume</p></div><div class="chart-legend"><span><i class="sales"></i>Sales</span><span><i class="purchases"></i>Purchases</span></div></div><div class="bar-chart"><div class="bar-group" v-for="day in d.activity" :key="day.date"><div class="bars"><i class="purchase-bar" :style="{height:`${Math.max(3,day.purchases/maxActivity*130)}px`}"></i><i class="sales-bar" :style="{height:`${Math.max(3,day.sales/maxActivity*130)}px`}"></i></div><span>{{day.date}}</span></div></div></section>

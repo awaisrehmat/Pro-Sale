@@ -6,6 +6,16 @@
 2. Use the left sidebar to open Dashboard, Products, Suppliers, Customers, Purchases, Sales, Stock, Payments, or Reports.
 3. Use **Log out** when finished.
 
+## Users, roles, and permissions
+
+Only an Administrator can open **User Administration**. Select **New user**, enter the user's name, unique email, strong password, role, and active status, then save. Use the edit icon to change a user's details or role. Disabling a user revokes their API sessions and prevents future sign-in.
+
+- **Administrator:** complete system access, including user administration.
+- **Manager:** complete operational and reporting access, but cannot administer users.
+- **Operator:** day-to-day purchasing, sales, payments, stock viewing, and reports; cannot edit master records, adjust stock, or cancel transactions.
+
+The application prevents an administrator from disabling their own account and prevents removal of the final active Administrator. Menu items and server APIs both enforce permissions. After changing your own role permissions during deployment, sign out and sign back in to refresh the browser session.
+
 ## Daily setup
 
 Create suppliers and customers before transactions. A seeded **Walk-in Customer** is available for anonymous retail sales. Create each product with a unique SKU, unit, purchase/sale prices, minimum stock, and optional opening stock. Current stock cannot be typed over later.

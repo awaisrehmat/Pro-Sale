@@ -2,7 +2,7 @@
 
 ## Architecture
 
-Laravel exposes JSON routes from `routes/api.php`; all business pages are served by the Vue single-page shell. Sanctum bearer tokens protect every business API. Controllers validate input and delegate inventory work to `PurchaseService`, `SaleService`, and `StockService`. Eloquent models represent the normalized schema.
+Laravel exposes JSON routes from `routes/api.php`; all business pages are served by the Vue single-page shell. Sanctum bearer tokens protect every business API, while Spatie Laravel Permission enforces route-level capabilities. Controllers validate input and delegate inventory work to `PurchaseService`, `SaleService`, and `StockService`. Eloquent models represent the normalized schema.
 
 Backend code is under `app/Http`, `app/Models`, `app/Services`, `app/Enums`, and `app/Support`. Frontend code is under `resources/js` with pages, router, API client, and reusable application layout; global Tailwind-backed styling is in `resources/css/app.css`.
 
@@ -30,13 +30,13 @@ Supplier outstanding equals opening balance plus completed purchases minus non-r
 
 Authentication: `POST /api/login`, `POST /api/logout`, `GET /api/user`.
 
-Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Payments: `GET|POST /api/payments`. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|low-stock|purchases|sales|profit}`.
+Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Payments: `GET|POST /api/payments`. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|low-stock|purchases|sales|profit}`. User administration: `GET|POST /api/users`, `PUT /api/users/{user}`, and `GET /api/users/roles`.
 
 Successful responses contain `success`, `message`, and `data`. Validation failures contain `success=false`, `message`, and `errors`. Form requests validate transaction payloads; database constraints enforce identity and relationships.
 
 ## Authentication and frontend state
 
-Login exchanges credentials for a Sanctum token stored in browser local storage. The Axios interceptor attaches it and clears it after an unauthorized response. Vue Router guards authenticated screens. Pinia is installed for future cross-screen state; current screen state remains local to keep this single-user application small.
+Login exchanges credentials for a Sanctum token stored in browser local storage. The response also contains role and permission names. The Axios interceptor attaches the token and clears the full session after an unauthorized response. Vue Router checks authentication and page permissions; the API remains authoritative through Spatie middleware. Roles and permissions use the `sanctum` guard. Seed changes with `php artisan db:seed`.
 
 ## Tests and standards
 

@@ -4,14 +4,47 @@ use App\Models\{Customer,Product,Supplier,User};
 use App\Services\{PurchaseService,SaleService,StockService};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\{Permission,Role};
+use Spatie\Permission\PermissionRegistrar;
 class DatabaseSeeder extends Seeder {
     public function run():void{
         $user=User::updateOrCreate(['email'=>env('DEFAULT_USER_EMAIL','admin@example.com')],['name'=>env('DEFAULT_USER_NAME','Admin'),'password'=>env('DEFAULT_USER_PASSWORD','password')]);
+        $this->seedRolesAndPermissions($user);
         Customer::updateOrCreate(['is_walk_in'=>true],['name'=>'Walk-in Customer','opening_balance'=>0,'is_active'=>true]);
         foreach(['app_name'=>'Stock Manager','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->updateOrInsert(compact('key'),['value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
         if(filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL)){
             $this->seedDemoData($user);
         }
+    }
+
+    private function seedRolesAndPermissions(User $administrator): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+        $permissions = [
+            'dashboard.view',
+            'products.view', 'products.manage',
+            'suppliers.view', 'suppliers.manage',
+            'customers.view', 'customers.manage',
+            'purchases.view', 'purchases.create', 'purchases.cancel',
+            'sales.view', 'sales.create', 'sales.cancel',
+            'stock.view', 'stock.adjust',
+            'payments.view', 'payments.create',
+            'reports.view',
+            'users.manage',
+        ];
+        foreach ($permissions as $permission) Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'sanctum']);
+        $administratorRole = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'sanctum']);
+        $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'sanctum']);
+        $operatorRole = Role::firstOrCreate(['name' => 'Operator', 'guard_name' => 'sanctum']);
+        $administratorRole->syncPermissions($permissions);
+        $managerRole->syncPermissions(array_values(array_diff($permissions, ['users.manage'])));
+        $operatorRole->syncPermissions([
+            'dashboard.view', 'products.view', 'suppliers.view', 'customers.view',
+            'purchases.view', 'purchases.create', 'sales.view', 'sales.create',
+            'stock.view', 'payments.view', 'payments.create', 'reports.view',
+        ]);
+        $administrator->syncRoles([$administratorRole]);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
     private function seedDemoData(User $user): void

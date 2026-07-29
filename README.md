@@ -1,6 +1,6 @@
 # Stock Manager
 
-A single-user procurement, sales, payment, and inventory application. Laravel 13 provides a Sanctum-protected REST API; Vue 3, Vite, Pinia-ready state infrastructure, Axios, and Tailwind CSS provide the responsive interface.
+A role-based procurement, sales, payment, and inventory application. Laravel 13 provides a Sanctum-protected REST API with Spatie permissions; Vue 3, Vite, Axios, and Tailwind CSS provide the responsive interface.
 
 Project behavior and implementation progress are defined in `APPLICATION_FLOWS.md`. Operational instructions are in `USER_MANUAL.md`, and individual development tasks are tracked in `TASKS.md`.
 
@@ -12,6 +12,7 @@ Project behavior and implementation progress are defined in `APPLICATION_FLOWS.m
 - Safe purchase and sale cancellation with reversing movements and payments
 - Dashboard, stock/low-stock/purchase/sales/profit reports, search and pagination
 - Server-generated FPDF Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers
+- Administrator-managed users with active/inactive status and Administrator, Manager, and Operator roles
 - Configurable admin seed and walk-in customer
 
 ## Installation

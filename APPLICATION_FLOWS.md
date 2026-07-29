@@ -4,7 +4,7 @@ This document is the implementation reference for what the application is trying
 
 ## Scope
 
-Stock Manager is a single-user system for:
+Stock Manager is a role-based system for:
 
 - Products and current inventory
 - Suppliers and supplier balances
@@ -14,8 +14,9 @@ Stock Manager is a single-user system for:
 - Stock adjustments and stock history
 - Supplier and customer payments
 - Operational and financial reports
+- Administrator-managed users, roles, and permissions
 
-The system does not include approvals, roles, quotations, requisitions, multiple warehouses, branches, or companies.
+The system does not include approval workflows, quotations, requisitions, multiple warehouses, branches, or companies.
 
 ## Core Inventory Flow
 
@@ -55,12 +56,12 @@ Email and password are validated
     ↓
 Sanctum token is issued
     ↓
-Token protects all business pages and API requests
+User permissions control business pages and API requests
     ↓
 Logout deletes the current token
 ```
 
-There is no public registration, role management, or permission hierarchy.
+There is no public registration. Administrators create users and assign the seeded Administrator, Manager, or Operator role. Inactive users cannot sign in; deactivation revokes existing tokens. The final active Administrator cannot be removed or deactivated.
 
 ## Product Flow
 
