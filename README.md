@@ -11,7 +11,7 @@ Project behavior and implementation progress are defined in `APPLICATION_FLOWS.m
 - Weighted-average costing, saved sale cost, gross-profit reporting
 - Safe purchase and sale cancellation with reversing movements and payments
 - Dashboard, stock/low-stock/purchase/sales/profit reports, search and pagination
-- Server-generated FPDF Receipt Vouchers and Payment Vouchers
+- Server-generated FPDF Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers
 - Configurable admin seed and walk-in customer
 
 ## Installation

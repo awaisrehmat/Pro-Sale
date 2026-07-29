@@ -47,9 +47,9 @@
   - Includes KPI cards, seven-day activity, receivables/payables, low-stock alerts, and recent activity.
 - [x] Create product screens
 - [x] Create purchase screens
-  - Includes complete purchase detail modal and printable purchase document.
+  - Includes complete purchase detail modal and FPDF Purchase Voucher.
 - [x] Create sales screens
-  - Includes complete sales detail modal and printable customer invoice.
+  - Includes complete sales detail modal and FPDF Sales Invoice.
 - [x] Create stock screens
   - Ledger displays product name/SKU and user-facing serial numbers without exposing database IDs.
 - [x] Create supplier screens

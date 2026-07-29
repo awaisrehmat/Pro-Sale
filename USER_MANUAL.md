@@ -24,7 +24,7 @@ Saving immediately increases stock and records stock-ledger entries. A partly pa
 
 The transaction summary remains visible while you add products. Every product row displays its calculated line total, and duplicate products are blocked.
 
-To review or print a purchase, return to the Purchases list and select the eye icon in its Actions column. The detail window includes supplier information, all product lines, totals, payment status, and notes. Select **Print** for a clean purchase document.
+To review or print a purchase, return to the Purchases list and select the eye icon in its Actions column. The detail window includes supplier information, all product lines, totals, payment status, and notes. Select **Open PDF** to generate the official FPDF Purchase Voucher.
 
 ## Record a sale
 
@@ -38,7 +38,7 @@ The form blocks saving when requested quantity exceeds stock. Saving reduces sto
 
 Products with insufficient stock are highlighted before submission. The summary continuously shows subtotal, discount, tax, amount paid, and balance due.
 
-To review or print a sales invoice, open the Sales list and select the eye icon. Select **Print** from the invoice detail window.
+To review or print a sales invoice, open the Sales list and select the eye icon. Select **Open PDF** to generate the official FPDF Sales Invoice.
 
 ## Stock and adjustments
 

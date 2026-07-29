@@ -9,11 +9,10 @@ const date=computed(()=>record.value?.purchase_date||record.value?.sale_date||re
 const money=v=>'PKR '+Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 function formatDate(v){return v?new Date(v).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):'—'}
 async function printDocument(){
- if(!isPayment.value){window.print();return}
  const popup=window.open('','_blank');
  pdfLoading.value=true;
  try{
-  const response=await api.get(`/payments/${record.value.id}/pdf`,{responseType:'blob'});
+  const response=await api.get(`/${props.resource}/${record.value.id}/pdf`,{responseType:'blob'});
   const url=URL.createObjectURL(new Blob([response.data],{type:'application/pdf'}));
   if(popup)popup.location.href=url;else window.location.href=url;
   setTimeout(()=>URL.revokeObjectURL(url),60000);
@@ -24,7 +23,7 @@ onMounted(async()=>{document.body.style.overflow='hidden';window.addEventListene
 onBeforeUnmount(()=>{document.body.style.overflow='';window.removeEventListener('keydown',keydown)});
 </script>
 <template><Teleport to="body"><div class="modal-backdrop" @click.self="emit('close')"><section class="detail-modal">
-<div class="modal-toolbar no-print"><div><span class="eyebrow">{{title}}</span><strong>{{number}}</strong></div><div><button class="secondary with-icon" :disabled="pdfLoading" @click="printDocument"><span v-if="pdfLoading" class="spinner dark"></span><AppIcon v-else name="print"/>{{pdfLoading?'Generating…':isPayment?'Open PDF':'Print'}}</button><button class="icon-only secondary" title="Close" @click="emit('close')"><AppIcon name="close"/></button></div></div>
+<div class="modal-toolbar no-print"><div><span class="eyebrow">{{title}}</span><strong>{{number}}</strong></div><div><button class="secondary with-icon" :disabled="pdfLoading" @click="printDocument"><span v-if="pdfLoading" class="spinner dark"></span><AppIcon v-else name="print"/>{{pdfLoading?'Generating…':'Open PDF'}}</button><button class="icon-only secondary" title="Close" @click="emit('close')"><AppIcon name="close"/></button></div></div>
 <div v-if="loading" class="empty-state">Loading details…</div><div v-else-if="error" class="error">{{error}}</div>
 <article v-else class="print-document">
 <header class="document-head"><div><div class="document-logo">SM</div><h2>Stock Manager</h2><p>Procurement, sales & inventory</p></div><div class="document-title"><span>{{title}}</span><strong>{{number}}</strong><em class="status" :class="record.status==='cancelled'||record.is_reversed?'neutral':'success'">{{record.status||((record.is_reversed)?'Reversed':'Received')}}</em></div></header>
