@@ -18,9 +18,13 @@ class Setting extends Model
             'company_email' => '',
             'company_website' => '',
             'company_tax_number' => '',
+            'company_logo' => '',
             'currency' => 'PKR',
         ];
 
-        return array_replace($defaults, static::whereIn('key', array_keys($defaults))->pluck('value', 'key')->all());
+        $company = array_replace($defaults, static::whereIn('key', array_keys($defaults))->pluck('value', 'key')->all());
+        $company['company_logo_url'] = $company['company_logo'] ? asset('storage/'.$company['company_logo']) : null;
+
+        return $company;
     }
 }

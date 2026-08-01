@@ -100,4 +100,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('company-settings', [CompanySettingsController::class, 'show'])->middleware('permission:settings.manage');
     Route::put('company-settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage');
+    Route::post('company-settings/logo', [CompanySettingsController::class, 'uploadLogo'])->middleware('permission:settings.manage');
+    Route::delete('company-settings/logo', [CompanySettingsController::class, 'removeLogo'])->middleware('permission:settings.manage');
 });

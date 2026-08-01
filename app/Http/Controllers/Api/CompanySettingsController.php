@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CompanySettingsController extends Controller
 {
@@ -34,5 +35,26 @@ class CompanySettingsController extends Controller
         });
 
         return response()->json(['success' => true, 'message' => 'Company details updated successfully.', 'data' => Setting::company()]);
+    }
+
+    public function uploadLogo(Request $request)
+    {
+        $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
+        $current = Setting::where('key', 'company_logo')->value('value');
+        $extension = strtolower($request->file('logo')->extension());
+        $path = $request->file('logo')->storeAs('company-logos', 'company-logo-'.now()->format('YmdHis').'.'.$extension, 'public');
+        Setting::updateOrCreate(['key' => 'company_logo'], ['value' => $path]);
+        if ($current && str_starts_with($current, 'company-logos/')) Storage::disk('public')->delete($current);
+
+        return response()->json(['success' => true, 'message' => 'Company logo updated successfully.', 'data' => Setting::company()]);
+    }
+
+    public function removeLogo()
+    {
+        $current = Setting::where('key', 'company_logo')->value('value');
+        Setting::updateOrCreate(['key' => 'company_logo'], ['value' => '']);
+        if ($current && str_starts_with($current, 'company-logos/')) Storage::disk('public')->delete($current);
+
+        return response()->json(['success' => true, 'message' => 'Company logo removed.', 'data' => Setting::company()]);
     }
 }

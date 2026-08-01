@@ -11,7 +11,7 @@ class DatabaseSeeder extends Seeder {
         $user=User::updateOrCreate(['email'=>env('DEFAULT_USER_EMAIL','admin@example.com')],['name'=>env('DEFAULT_USER_NAME','Admin'),'password'=>env('DEFAULT_USER_PASSWORD','password')]);
         $this->seedRolesAndPermissions($user);
         Customer::updateOrCreate(['is_walk_in'=>true],['name'=>'Walk-in Customer','opening_balance'=>0,'is_active'=>true]);
-        foreach(['app_name'=>'Stock Manager','company_name'=>'Stock Manager','company_tagline'=>'Procurement, Sales and Inventory','company_address'=>'','company_phone'=>'','company_email'=>'','company_website'=>'','company_tax_number'=>'','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->insertOrIgnore(['key'=>$key,'value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
+        foreach(['app_name'=>'Stock Manager','company_name'=>'Stock Manager','company_tagline'=>'Procurement, Sales and Inventory','company_address'=>'','company_phone'=>'','company_email'=>'','company_website'=>'','company_tax_number'=>'','company_logo'=>'','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->insertOrIgnore(['key'=>$key,'value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
         if(filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL)){
             $this->seedDemoData($user);
         }

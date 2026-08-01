@@ -18,7 +18,7 @@ The application prevents an administrator from disabling their own account and p
 
 ## Company settings
 
-An Administrator can open **Company Settings** under Administration and edit the company name, tagline, address, phone, email, website, tax/registration number, and currency code. Select **Save company details** to apply the changes. The saved identity and contact details are automatically used on Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers.
+An Administrator can open **Company Settings** under Administration and edit the company name, logo, tagline, address, phone, email, website, tax/registration number, and currency code. Upload a PNG or JPG logo up to 2 MB; a clear square or landscape image with a white or transparent background prints best. Select **Save company details** to apply text changes. The saved identity, logo, and contact details are automatically used on Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers.
 
 ## Daily setup
 

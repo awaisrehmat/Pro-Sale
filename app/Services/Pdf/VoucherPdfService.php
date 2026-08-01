@@ -40,13 +40,18 @@ class VoucherPdfService
         $pdf->SetTitle($this->text($title.' '.$payment->payment_number));
         $pdf->SetCreator($this->text($company['company_name']));
 
-        $pdf->SetFillColor(23, 92, 211);
-        $pdf->Rect(15, 14, 15, 15, 'F');
-        $pdf->SetFont('Arial', 'B', 8);
-        $pdf->SetTextColor(255, 255, 255);
-        $pdf->SetXY(15, 19);
-        $mark = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $company['company_name']), 0, 2)) ?: 'CO';
-        $pdf->Cell(15, 5, $this->text($mark), 0, 0, 'C');
+        $logoPath = $company['company_logo'] ? storage_path('app/public/'.$company['company_logo']) : '';
+        if ($logoPath && file_exists($logoPath)) {
+            $pdf->Image($logoPath, 15, 14, 15, 15);
+        } else {
+            $pdf->SetFillColor(23, 92, 211);
+            $pdf->Rect(15, 14, 15, 15, 'F');
+            $pdf->SetFont('Arial', 'B', 8);
+            $pdf->SetTextColor(255, 255, 255);
+            $pdf->SetXY(15, 19);
+            $mark = strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $company['company_name']), 0, 2)) ?: 'CO';
+            $pdf->Cell(15, 5, $this->text($mark), 0, 0, 'C');
+        }
 
         $pdf->SetXY(35, 15);
         $pdf->SetTextColor(16, 24, 40);

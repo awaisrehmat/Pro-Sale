@@ -32,15 +32,20 @@ class TransactionPdfService
             public string $companyMark = '';
             public string $companySubtitle = '';
             public string $companyFooter = '';
+            public string $companyLogo = '';
 
             public function Header(): void
             {
-                $this->SetFillColor(23, 92, 211);
-                $this->Rect(15, 12, 14, 14, 'F');
-                $this->SetXY(15, 16.5);
-                $this->SetFont('Arial', 'B', 8);
-                $this->SetTextColor(255, 255, 255);
-                $this->Cell(14, 5, $this->companyMark, 0, 0, 'C');
+                if ($this->companyLogo && file_exists($this->companyLogo)) {
+                    $this->Image($this->companyLogo, 15, 12, 14, 14);
+                } else {
+                    $this->SetFillColor(23, 92, 211);
+                    $this->Rect(15, 12, 14, 14, 'F');
+                    $this->SetXY(15, 16.5);
+                    $this->SetFont('Arial', 'B', 8);
+                    $this->SetTextColor(255, 255, 255);
+                    $this->Cell(14, 5, $this->companyMark, 0, 0, 'C');
+                }
 
                 $this->SetXY(34, 12);
                 $this->SetTextColor(16, 24, 40);
@@ -84,6 +89,7 @@ class TransactionPdfService
         $pdf->companyMark = $this->text(strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $company['company_name']), 0, 2)) ?: 'CO');
         $pdf->companySubtitle = $this->text($this->shorten($company['company_tagline'] ?: $company['company_phone'], 55));
         $pdf->companyFooter = $this->text($this->shorten(implode('  |  ', array_filter([$company['company_address'], $company['company_phone'], $company['company_email'], $company['company_tax_number']])), 110) ?: 'Generated document');
+        $pdf->companyLogo = $company['company_logo'] ? storage_path('app/public/'.$company['company_logo']) : '';
         $pdf->AliasNbPages();
         $pdf->SetMargins(15, 38, 15);
         $pdf->SetAutoPageBreak(true, 18);

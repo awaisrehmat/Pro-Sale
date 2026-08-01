@@ -17,6 +17,7 @@ defineProps({name:String,size:{type:Number,default:16},stroke:{type:Number,defau
 <template v-else-if="name==='edit'"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z"/></template>
 <template v-else-if="name==='print'"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></template>
 <template v-else-if="name==='download'"><path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/></template>
+<template v-else-if="name==='upload'"><path d="M12 16V4m-5 5 5-5 5 5M5 20h14"/></template>
 <template v-else-if="name==='close'"><path d="m6 6 12 12M18 6 6 18"/></template>
 <template v-else-if="name==='logout'"><path d="M10 17l5-5-5-5M15 12H3M15 3h5a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-5"/></template>
 <template v-else-if="name==='menu'"><path d="M4 6h16M4 12h16M4 18h16"/></template>
