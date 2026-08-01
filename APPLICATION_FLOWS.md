@@ -15,6 +15,7 @@ Stock Manager is a role-based system for:
 - Supplier and customer payments
 - Operational and financial reports
 - Administrator-managed users, roles, and permissions
+- Administrator-managed company details used on official printables
 
 The system does not include approval workflows, quotations, requisitions, multiple warehouses, branches, or companies.
 

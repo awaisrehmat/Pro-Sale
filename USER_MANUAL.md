@@ -16,6 +16,10 @@ Only an Administrator can open **User Administration**. Select **New user**, ent
 
 The application prevents an administrator from disabling their own account and prevents removal of the final active Administrator. Menu items and server APIs both enforce permissions. After changing your own role permissions during deployment, sign out and sign back in to refresh the browser session.
 
+## Company settings
+
+An Administrator can open **Company Settings** under Administration and edit the company name, tagline, address, phone, email, website, tax/registration number, and currency code. Select **Save company details** to apply the changes. The saved identity and contact details are automatically used on Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers.
+
 ## Daily setup
 
 Create suppliers and customers before transactions. A seeded **Walk-in Customer** is available for anonymous retail sales. Create each product with a unique SKU, unit, purchase/sale prices, minimum stock, and optional opening stock. Current stock cannot be typed over later.

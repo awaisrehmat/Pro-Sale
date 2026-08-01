@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\{
     AuthController,
+    CompanySettingsController,
     OperationsController,
     PartyController,
     PdfController,
@@ -95,4 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [UserAdministrationController::class, 'store']);
         Route::put('{user}', [UserAdministrationController::class, 'update']);
     });
+
+    Route::get('company-settings', [CompanySettingsController::class, 'show'])->middleware('permission:settings.manage');
+    Route::put('company-settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage');
 });

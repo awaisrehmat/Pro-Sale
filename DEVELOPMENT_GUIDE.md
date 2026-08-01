@@ -38,6 +38,8 @@ Successful responses contain `success`, `message`, and `data`. Validation failur
 
 Login exchanges credentials for a Sanctum token stored in browser local storage. The response also contains role and permission names. The Axios interceptor attaches the token and clears the full session after an unauthorized response. Vue Router checks authentication and page permissions; the API remains authoritative through Spatie middleware. Roles and permissions use the `sanctum` guard. Seed changes with `php artisan db:seed`.
 
+Company profile values are stored as keyed rows in `settings` and managed through `GET|PUT /api/company-settings` with `settings.manage`. `Setting::company()` provides defaults and is the shared source for all FPDF document branding. Seeder defaults use insert-only behavior so later seeding does not overwrite administrator changes.
+
 ## Tests and standards
 
 `tests/Feature/InventoryFlowTest.php` covers core purchasing, sale, rollback, cancellation, costing, profit, and payment behavior with an in-memory database. Run `php artisan test` and `npm run build` before every release. Keep controllers thin, validate all input, keep stock changes in services, use transactions and row locks, and never edit `current_stock` from generic product updates.
