@@ -19,7 +19,7 @@ class SaleService {
                 if($qty>(float)$p->current_stock) throw ValidationException::withMessages(['items'=>"Only {$p->current_stock} units of {$p->name} are available."]);
                 $line=round($qty*$item['unit_price']-($item['discount']??0),2);
                 $sale->items()->create(['product_id'=>$p->id,'quantity'=>$qty,'unit_price'=>$item['unit_price'],'discount'=>$item['discount']??0,'line_total'=>$line,'unit_cost'=>$p->average_cost]);
-                $this->stock->move($p,0,$qty,'sale',$sale,$sale->sale_number,(float)$p->average_cost,$userId);
+                $this->stock->move($p,0,$qty,'sale',$sale,$sale->sale_number,(float)$p->average_cost,$userId,null,$data['sale_date']);
             }
             if($paid>0) Payment::create(['payment_number'=>Numbers::next('RV',$data['sale_date']),'payment_date'=>$data['sale_date'],
                 'payment_type'=>'customer_payment','customer_id'=>$sale->customer_id,'sale_id'=>$sale->id,'amount'=>$paid,'payment_method'=>$data['payment_method'],'created_by'=>$userId]);

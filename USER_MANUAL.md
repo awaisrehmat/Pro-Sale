@@ -91,7 +91,9 @@ The PDF shows the party, amount in figures and words, payment method, reference,
 
 ## Reports
 
-Reports include Financial Position, Stock, Low Stock, Purchases, Sales, and Profit. Financial Position separates money received and paid by Cash, Bank Transfer, Card, and Other; it also shows net channel movement, customer receivables, supplier payables, and the largest outstanding party balances. Its date range controls payment movement, while receivables and payables are calculated as of the selected ending date.
+Reports include Financial Position, Product Stock Ledger, Stock, Low Stock, Purchases, Sales, and Profit. Financial Position separates money received and paid by Cash, Bank Transfer, Card, and Other; it also shows net channel movement, customer receivables, supplier payables, and the largest outstanding party balances. Its date range controls payment movement, while receivables and payables are calculated as of the selected ending date.
+
+Use **Product Stock Ledger** to audit when inventory entered or left the business. Select a product and date range to see opening stock, total quantity in, total quantity out, net change, closing stock, movement reason, source purchase/sale/adjustment number, stock before and after, unit cost, and notes. Leaving Product blank shows movements for all products; select one product when you need a meaningful single-unit opening and closing balance.
 
 1. Open **Reports** from the sidebar.
 2. Select a report tab.

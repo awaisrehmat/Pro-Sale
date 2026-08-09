@@ -38,6 +38,7 @@ class OperationsController extends Controller {
     public function report(string $type,Request $r){
         $payload=match($type){
             'stock'=>$this->stockReport($r,false),
+            'stock-ledger'=>$this->stockLedgerReport($r),
             'low-stock'=>$this->stockReport($r,true),
             'purchases'=>$this->purchaseReport($r),
             'sales'=>$this->salesReport($r),
@@ -58,6 +59,37 @@ class OperationsController extends Controller {
                 'minimum_stock'=>(float)$p->minimum_stock_level,'stock_status'=>$p->current_stock<=0?'Out of stock':($p->current_stock<=$p->minimum_stock_level?'Low stock':'In stock')]);
         return ['rows'=>$rows,'summary'=>['products'=>$rows->count(),'quantity'=>$rows->sum('current_stock'),'stock_value'=>$rows->sum('stock_value'),
             'low_stock'=>$rows->whereIn('stock_status',['Low stock','Out of stock'])->count()]];
+    }
+
+    private function stockLedgerReport(Request $r): array
+    {
+        $query = StockMovement::with('product:id,name,sku,unit')
+            ->when($r->product_id, fn($q,$id)=>$q->where('product_id',$id))
+            ->when($r->date_from, fn($q,$date)=>$q->whereDate('movement_date','>=',$date))
+            ->when($r->date_to, fn($q,$date)=>$q->whereDate('movement_date','<=',$date))
+            ->orderBy('movement_date')->orderBy('id');
+        $movements = $query->get();
+        $openingByProduct = StockMovement::query()
+            ->when($r->product_id, fn($q,$id)=>$q->where('product_id',$id))
+            ->when($r->date_from, fn($q,$date)=>$q->whereDate('movement_date','<',$date), fn($q)=>$q->whereRaw('1 = 0'))
+            ->selectRaw('product_id, COALESCE(SUM(quantity_in - quantity_out),0) balance')->groupBy('product_id')->pluck('balance','product_id');
+        $running = $openingByProduct->map(fn($balance)=>(float)$balance)->all();
+        $chronologyIssues = 0;
+        $rows = $movements->map(function($movement)use(&$running,&$chronologyIssues){
+            $before=(float)($running[$movement->product_id]??0);
+            $after=round($before+(float)$movement->quantity_in-(float)$movement->quantity_out,3);
+            $running[$movement->product_id]=$after;
+            if($after<0)$chronologyIssues++;
+            return ['date'=>$movement->movement_date->format('Y-m-d'),'product'=>$movement->product?->name,'sku'=>$movement->product?->sku,
+                'unit'=>$movement->product?->unit,'movement'=>ucwords(str_replace('_',' ',$movement->movement_type)),
+                'source_document'=>$movement->reference_number ?: 'Manual entry','quantity_in'=>(float)$movement->quantity_in,
+                'quantity_out'=>(float)$movement->quantity_out,'stock_before'=>$before,'stock_after'=>$after,
+                'balance_status'=>$after<0?'Backdated shortage':'Balanced','unit_cost'=>(float)$movement->unit_cost,'notes'=>$movement->notes];
+        });
+        $in=(float)$movements->sum('quantity_in');$out=(float)$movements->sum('quantity_out');
+        $opening=(float)$openingByProduct->sum();
+        return ['rows'=>$rows,'summary'=>['movements'=>$rows->count(),'opening_stock'=>$opening,'total_in'=>$in,
+            'total_out'=>$out,'net_change'=>$in-$out,'closing_stock'=>$opening+$in-$out,'chronology_issues'=>$chronologyIssues]];
     }
 
     private function purchaseReport(Request $r):array{

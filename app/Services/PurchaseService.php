@@ -21,7 +21,7 @@ class PurchaseService {
                 $purchase->items()->create(['product_id'=>$p->id,'quantity'=>$qty,'unit_price'=>$price,'discount'=>$item['discount']??0,'line_total'=>$line,'previous_average_cost'=>$oldCost]);
                 $newCost=($oldStock+$qty)>0?round((($oldStock*$oldCost)+($qty*$price))/($oldStock+$qty),2):0;
                 $p->update(['average_cost'=>$newCost,'purchase_price'=>$price]);
-                $this->stock->move($p,$qty,0,'purchase',$purchase,$purchase->purchase_number,$price,$userId);
+                $this->stock->move($p,$qty,0,'purchase',$purchase,$purchase->purchase_number,$price,$userId,null,$data['purchase_date']);
             }
             if($paid>0) Payment::create(['payment_number'=>Numbers::next('PV',$data['purchase_date']),'payment_date'=>$data['purchase_date'],
                 'payment_type'=>'supplier_payment','supplier_id'=>$purchase->supplier_id,'purchase_id'=>$purchase->id,'amount'=>$paid,
