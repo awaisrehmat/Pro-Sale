@@ -12,7 +12,7 @@ class PurchaseService {
             $subtotal=collect($data['items'])->sum(fn($i)=>round($i['quantity']*$i['unit_price']-($i['discount']??0),2));
             $total=round($subtotal-($data['discount']??0)+($data['additional_cost']??0),2); $paid=(float)($data['paid_amount']??0);
             if($paid>$total) throw ValidationException::withMessages(['paid_amount'=>'Paid amount cannot exceed grand total.']);
-            $purchase=Purchase::create([...Arr::except($data,'items'),'purchase_number'=>Numbers::next(Purchase::class,'purchase_number','PUR'),'subtotal'=>$subtotal,
+            $purchase=Purchase::create([...Arr::except($data,'items'),'purchase_number'=>Numbers::next('PO',$data['purchase_date']),'subtotal'=>$subtotal,
                 'grand_total'=>$total,'paid_amount'=>$paid,'due_amount'=>$total-$paid,'payment_status'=>$paid<=0?'unpaid':($paid<$total?'partial':'paid'),'status'=>'completed','created_by'=>$userId]);
             foreach($data['items'] as $item){
                 $p=Product::query()->lockForUpdate()->where('is_active',true)->findOrFail($item['product_id']);
@@ -23,7 +23,7 @@ class PurchaseService {
                 $p->update(['average_cost'=>$newCost,'purchase_price'=>$price]);
                 $this->stock->move($p,$qty,0,'purchase',$purchase,$purchase->purchase_number,$price,$userId);
             }
-            if($paid>0) Payment::create(['payment_number'=>Numbers::next(Payment::class,'payment_number','PAY'),'payment_date'=>$data['purchase_date'],
+            if($paid>0) Payment::create(['payment_number'=>Numbers::next('PV',$data['purchase_date']),'payment_date'=>$data['purchase_date'],
                 'payment_type'=>'supplier_payment','supplier_id'=>$purchase->supplier_id,'purchase_id'=>$purchase->id,'amount'=>$paid,
                 'payment_method'=>$data['payment_method'],'created_by'=>$userId]);
             return $purchase->load('supplier','items.product','payments');

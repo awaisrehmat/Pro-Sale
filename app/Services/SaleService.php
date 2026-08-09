@@ -12,7 +12,7 @@ class SaleService {
             $subtotal=collect($data['items'])->sum(fn($i)=>round($i['quantity']*$i['unit_price']-($i['discount']??0),2));
             $total=round($subtotal-($data['discount']??0)+($data['tax']??0),2); $paid=(float)($data['paid_amount']??0);
             if($paid>$total) throw ValidationException::withMessages(['paid_amount'=>'Paid amount cannot exceed grand total.']);
-            $sale=Sale::create([...Arr::except($data,'items'),'sale_number'=>Numbers::next(Sale::class,'sale_number','SAL'),'subtotal'=>$subtotal,'grand_total'=>$total,
+            $sale=Sale::create([...Arr::except($data,'items'),'sale_number'=>Numbers::next('SI',$data['sale_date']),'subtotal'=>$subtotal,'grand_total'=>$total,
                 'paid_amount'=>$paid,'due_amount'=>$total-$paid,'payment_status'=>$paid<=0?'unpaid':($paid<$total?'partial':'paid'),'status'=>'completed','created_by'=>$userId]);
             foreach($data['items'] as $item){
                 $p=Product::query()->lockForUpdate()->where('is_active',true)->findOrFail($item['product_id']); $qty=(float)$item['quantity'];
@@ -21,7 +21,7 @@ class SaleService {
                 $sale->items()->create(['product_id'=>$p->id,'quantity'=>$qty,'unit_price'=>$item['unit_price'],'discount'=>$item['discount']??0,'line_total'=>$line,'unit_cost'=>$p->average_cost]);
                 $this->stock->move($p,0,$qty,'sale',$sale,$sale->sale_number,(float)$p->average_cost,$userId);
             }
-            if($paid>0) Payment::create(['payment_number'=>Numbers::next(Payment::class,'payment_number','PAY'),'payment_date'=>$data['sale_date'],
+            if($paid>0) Payment::create(['payment_number'=>Numbers::next('RV',$data['sale_date']),'payment_date'=>$data['sale_date'],
                 'payment_type'=>'customer_payment','customer_id'=>$sale->customer_id,'sale_id'=>$sale->id,'amount'=>$paid,'payment_method'=>$data['payment_method'],'created_by'=>$userId]);
             return $sale->load('customer','items.product','payments');
         });

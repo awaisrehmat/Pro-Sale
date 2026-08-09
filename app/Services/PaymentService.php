@@ -41,7 +41,7 @@ class PaymentService
 
             $payment = Payment::create([
                 ...$data,
-                'payment_number' => Numbers::next(Payment::class, 'payment_number', 'PAY'),
+                'payment_number' => Numbers::next($data['payment_type'] === 'supplier_payment' ? 'PV' : 'RV', $data['payment_date']),
                 'created_by' => $userId,
             ]);
 

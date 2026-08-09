@@ -62,6 +62,8 @@ The Stock page is the audit ledger. It shows a simple serial number, product nam
 
 ## Payments and balances
 
+Document numbers use a compact type, month, year, and running sequence. For example, `PV_A25-001` is the first Payment Voucher created in January 2025. Month letters run from `A` for January through `L` for December. Prefixes are `PV` for Payment Voucher, `RV` for Receipt Voucher, `SI` for Sales Invoice, and `PO` for Purchase Order/Voucher. Each document type has its own monthly sequence.
+
 The voucher direction follows normal accounting language:
 
 - **Money in — Receipt Voucher:** money received from a customer.

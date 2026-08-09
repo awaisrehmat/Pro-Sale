@@ -23,6 +23,8 @@ The system does not include approval workflows, quotations, requisitions, multip
 
 ## Core Inventory Flow
 
+New transaction numbers encode document type, month letter, two-digit year, and monthly sequence—for example, `PV_A25-001`.
+
 ```text
 Product created
     ↓
