@@ -66,7 +66,7 @@
   - Supports Receipt Vouchers, Payment Vouchers, outstanding-document allocation, partial installments, and transaction payment history.
   - Receipt and Payment Vouchers are generated as printable FPDF documents.
 - [x] Create reports
-  - Includes report-specific summaries and filters, status indicators, CSV export, and print styling.
+  - Includes report-specific summaries and filters, status indicators, CSV export, print styling, payment-channel cash flow, receivables, and payables.
 - [x] Verify responsive layout
   - Compact desktop layout collapses to a single-column mobile layout.
   - UX pass includes responsive login, paginated lists, formatted values, guided transaction entry, loading states, empty states, success feedback, and keyboard-friendly detail dismissal.

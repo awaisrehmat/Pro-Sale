@@ -90,7 +90,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('payments', [OperationsController::class, 'pay'])->middleware('permission:payments.create');
 
     Route::get('reports/{type}', [OperationsController::class, 'report'])
-        ->whereIn('type', ['stock', 'low-stock', 'purchases', 'sales', 'profit'])
+        ->whereIn('type', ['stock', 'low-stock', 'purchases', 'sales', 'profit', 'financial'])
         ->middleware('permission:reports.view');
 
     Route::middleware('permission:users.manage')->prefix('users')->group(function () {

@@ -91,7 +91,7 @@ The PDF shows the party, amount in figures and words, payment method, reference,
 
 ## Reports
 
-Reports include Stock, Low Stock, Purchases, Sales, and Profit.
+Reports include Financial Position, Stock, Low Stock, Purchases, Sales, and Profit. Financial Position separates money received and paid by Cash, Bank Transfer, Card, and Other; it also shows net channel movement, customer receivables, supplier payables, and the largest outstanding party balances. Its date range controls payment movement, while receivables and payables are calculated as of the selected ending date.
 
 1. Open **Reports** from the sidebar.
 2. Select a report tab.

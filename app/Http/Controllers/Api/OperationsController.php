@@ -42,6 +42,7 @@ class OperationsController extends Controller {
             'purchases'=>$this->purchaseReport($r),
             'sales'=>$this->salesReport($r),
             'profit'=>$this->profitReport($r),
+            'financial'=>$this->financialReport($r),
             default=>throw ValidationException::withMessages(['report'=>'Unknown report.'])};
         return $this->ok($payload);
     }
@@ -88,6 +89,45 @@ class OperationsController extends Controller {
         $revenue=$rows->sum('revenue');$profit=$rows->sum('gross_profit');
         return ['rows'=>$rows,'summary'=>['sales'=>$rows->count(),'revenue'=>$revenue,'cogs'=>$rows->sum('cogs'),'gross_profit'=>$profit,
             'margin_percent'=>$revenue>0?round(($profit/$revenue)*100,1):0]];
+    }
+
+    private function financialReport(Request $r): array
+    {
+        $from = $r->date_from ?: now()->startOfMonth()->toDateString();
+        $to = $r->date_to ?: now()->toDateString();
+        $payments = Payment::query()->where('is_reversed', false)
+            ->whereBetween('payment_date', [$from, $to])
+            ->when($r->payment_method, fn($q,$method)=>$q->where('payment_method',$method))
+            ->get();
+        $methods = ['cash'=>'Cash','bank_transfer'=>'Bank transfer','card'=>'Card','other'=>'Other'];
+        $rows = collect($methods)->map(function($label,$method)use($payments){
+            $methodPayments=$payments->where('payment_method',$method);
+            $received=(float)$methodPayments->where('payment_type','customer_payment')->sum('amount');
+            $paid=(float)$methodPayments->where('payment_type','supplier_payment')->sum('amount');
+            return ['payment_method'=>$label,'received'=>$received,'paid'=>$paid,'net_movement'=>$received-$paid,
+                'receipt_vouchers'=>$methodPayments->where('payment_type','customer_payment')->count(),
+                'payment_vouchers'=>$methodPayments->where('payment_type','supplier_payment')->count()];
+        })->values();
+
+        $receivables = Customer::query()->get()->map(function($customer)use($to){
+            $sales=(float)$customer->sales()->where('status','completed')->whereDate('sale_date','<=',$to)->sum('grand_total');
+            $received=(float)$customer->payments()->where('payment_type','customer_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
+            return ['party'=>$customer->name,'opening_balance'=>(float)$customer->opening_balance,'transactions'=>$sales,'settled'=>$received,'outstanding'=>max(0,(float)$customer->opening_balance+$sales-$received)];
+        })->filter(fn($row)=>$row['outstanding']>0)->sortByDesc('outstanding')->values();
+        $payables = Supplier::query()->get()->map(function($supplier)use($to){
+            $purchases=(float)$supplier->purchases()->where('status','completed')->whereDate('purchase_date','<=',$to)->sum('grand_total');
+            $paid=(float)$supplier->payments()->where('payment_type','supplier_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
+            return ['party'=>$supplier->name,'opening_balance'=>(float)$supplier->opening_balance,'transactions'=>$purchases,'settled'=>$paid,'outstanding'=>max(0,(float)$supplier->opening_balance+$purchases-$paid)];
+        })->filter(fn($row)=>$row['outstanding']>0)->sortByDesc('outstanding')->values();
+        $received=(float)$rows->sum('received');$paid=(float)$rows->sum('paid');
+        $cash=$rows->firstWhere('payment_method','Cash');
+        $bank=$rows->firstWhere('payment_method','Bank transfer');
+        return ['rows'=>$rows,'summary'=>['total_received'=>$received,'total_paid'=>$paid,'net_cash_flow'=>$received-$paid,
+            'cash_net_movement'=>$cash['net_movement']??0,'bank_net_movement'=>$bank['net_movement']??0,
+            'customer_receivables'=>$receivables->sum('outstanding'),'supplier_payables'=>$payables->sum('outstanding'),
+            'net_working_balance'=>$receivables->sum('outstanding')-$payables->sum('outstanding')],
+            'details'=>['receivables'=>$receivables->take(10)->values(),'payables'=>$payables->take(10)->values()],
+            'period'=>['from'=>$from,'to'=>$to,'position_as_of'=>$to]];
     }
     private function ok($data,$message='Data retrieved successfully.',$status=200){return response()->json(['success'=>true,'message'=>$message,'data'=>$data],$status);}
 }
