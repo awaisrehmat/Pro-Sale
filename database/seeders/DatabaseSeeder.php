@@ -1,6 +1,6 @@
 <?php
 namespace Database\Seeders;
-use App\Models\{Customer,Product,Supplier,User};
+use App\Models\{Customer,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
 use App\Services\{PurchaseService,SaleService,StockService};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -12,8 +12,13 @@ class DatabaseSeeder extends Seeder {
         $this->seedRolesAndPermissions($user);
         Customer::updateOrCreate(['is_walk_in'=>true],['name'=>'Walk-in Customer','opening_balance'=>0,'is_active'=>true]);
         foreach(['app_name'=>'Stock Manager','company_name'=>'Stock Manager','company_tagline'=>'Procurement, Sales and Inventory','company_address'=>'','company_phone'=>'','company_email'=>'','company_website'=>'','company_tax_number'=>'','company_logo'=>'','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->insertOrIgnore(['key'=>$key,'value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
+        foreach([['Piece','pc',0],['Kilogram','kg',3],['Gram','g',3],['Litre','L',3],['Metre','m',3],['Box','box',0],['Pack','pack',0],['Dozen','doz',0],['Carton','ctn',0],['Ream','ream',0],['Bag','bag',0],['Bottle','bottle',0],['Roll','roll',0]] as [$name,$symbol,$places]) UnitOfMeasurement::firstOrCreate(['symbol'=>$symbol],['name'=>$name,'decimal_places'=>$places,'is_active'=>true]);
+        $unitAliases=['piece'=>'pc','pieces'=>'pc','pcs'=>'pc'];
+        Product::whereNull('unit_of_measurement_id')->get()->each(function(Product $product)use($unitAliases){$symbol=$unitAliases[strtolower($product->unit)]??$product->unit;$uom=UnitOfMeasurement::whereRaw('LOWER(symbol) = ?', [strtolower($symbol)])->first();if($uom)$product->update(['unit_of_measurement_id'=>$uom->id]);});
+        $this->seedProductCategories();
         if(filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL)){
             $this->seedDemoData($user);
+            $this->seedProductCategories();
         }
     }
 
@@ -50,6 +55,47 @@ class DatabaseSeeder extends Seeder {
         ]);
         $administrator->syncRoles([$administratorRole]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function seedProductCategories(): void
+    {
+        $structure = [
+            'Stationery & Office' => ['Paper Products', 'Writing Instruments', 'Office Accessories'],
+            'Packaging' => ['Carton Boxes', 'Tapes & Adhesives', 'Bags & Wrapping'],
+            'Grocery' => ['Rice & Grains', 'Cooking Oil', 'Dry Food'],
+            'Cleaning Supplies' => ['Floor Care', 'Tissues & Paper', 'Household Cleaners'],
+            'Beverages' => ['Water', 'Soft Drinks', 'Tea & Coffee'],
+            'Personal Care' => ['Soap & Sanitizers', 'Hair Care', 'Oral Care'],
+        ];
+
+        foreach ($structure as $categoryName => $subcategoryNames) {
+            $category = ProductCategory::firstOrCreate(['name' => $categoryName], ['is_active' => true]);
+            foreach ($subcategoryNames as $subcategoryName) {
+                ProductSubcategory::firstOrCreate(
+                    ['product_category_id' => $category->id, 'name' => $subcategoryName],
+                    ['is_active' => true]
+                );
+            }
+        }
+
+        $assignments = [
+            'STN-001' => ['Stationery & Office', 'Paper Products'],
+            'STN-002' => ['Stationery & Office', 'Writing Instruments'],
+            'PKG-001' => ['Packaging', 'Carton Boxes'],
+            'PKG-002' => ['Packaging', 'Tapes & Adhesives'],
+            'GRC-001' => ['Grocery', 'Rice & Grains'],
+            'GRC-002' => ['Grocery', 'Cooking Oil'],
+            'CLN-001' => ['Cleaning Supplies', 'Floor Care'],
+            'CLN-002' => ['Cleaning Supplies', 'Tissues & Paper'],
+        ];
+
+        foreach ($assignments as $sku => [$categoryName, $subcategoryName]) {
+            $product = Product::where('sku', $sku)->whereNull('product_category_id')->first();
+            if (! $product) continue;
+            $category = ProductCategory::where('name', $categoryName)->firstOrFail();
+            $subcategory = ProductSubcategory::where('product_category_id', $category->id)->where('name', $subcategoryName)->firstOrFail();
+            $product->update(['product_category_id' => $category->id, 'product_subcategory_id' => $subcategory->id]);
+        }
     }
 
     private function seedDemoData(User $user): void

@@ -10,7 +10,8 @@ const routes=[
  {path:'/reports',component:Reports,meta:{auth:true,permission:'reports.view'}},
  {path:'/users',component:UserAdministration,meta:{auth:true,permission:'users.manage'}},
  {path:'/company-settings',component:CompanySettings,meta:{auth:true,permission:'settings.manage'}},
- {path:'/product-categories',component:ProductCategories,meta:{auth:true,permission:'settings.manage'}},
+ {path:'/product-settings',component:ProductCategories,meta:{auth:true,permission:'settings.manage'}},
+ {path:'/product-categories',redirect:'/product-settings'},
 ];
 const router=createRouter({history:createWebHistory(),routes});
 router.beforeEach(to=>{if(to.meta.auth&&!localStorage.getItem('token'))return'/login';if(to.meta.permission&&!can(to.meta.permission))return'/';return true});

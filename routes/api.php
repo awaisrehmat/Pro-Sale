@@ -9,7 +9,8 @@ use App\Http\Controllers\Api\{
     ProductController,
     ProductCategoryController,
     TransactionController,
-    UserAdministrationController
+    UserAdministrationController,
+    UnitOfMeasurementController
 };
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -112,5 +113,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('subcategories', [ProductCategoryController::class, 'storeSubcategory']);
         Route::put('subcategories/{subcategory}', [ProductCategoryController::class, 'updateSubcategory']);
         Route::delete('subcategories/{subcategory}', [ProductCategoryController::class, 'destroySubcategory']);
+    });
+    Route::get('units-of-measurement', [UnitOfMeasurementController::class, 'index'])->middleware('permission:settings.manage|products.manage');
+    Route::middleware('permission:settings.manage')->prefix('units-of-measurement')->group(function () {
+        Route::post('/', [UnitOfMeasurementController::class, 'store']);
+        Route::put('{unit}', [UnitOfMeasurementController::class, 'update']);
+        Route::delete('{unit}', [UnitOfMeasurementController::class, 'destroy']);
     });
 });

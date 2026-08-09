@@ -8,6 +8,7 @@ Stock Manager is a role-based system for:
 
 - Products and current inventory
 - Product categories and dependent subcategories
+- Configured product units of measurement and decimal precision
 - Suppliers and supplier balances
 - Customers and customer balances
 - Purchases

@@ -15,7 +15,7 @@ const groups=[
  {label:'Operations',links:[['/purchases','purchase','Purchases','purchases.view'],['/sales','sale','Sales','sales.view'],['/payments','payment','Payments','payments.view']]},
  {label:'Directory',links:[['/products','product','Products','products.view'],['/suppliers','supplier','Suppliers','suppliers.view'],['/customers','customer','Customers','customers.view']]},
  {label:'Insights',links:[['/stock-movements','stock','Stock ledger','stock.view'],['/reports','report','Reports','reports.view']]},
- {label:'Administration',links:[['/users','customer','User administration','users.manage'],['/company-settings','settings','Company settings','settings.manage'],['/product-categories','product','Product categories','settings.manage']]},
+ {label:'Administration',links:[['/users','customer','User administration','users.manage'],['/company-settings','settings','Company settings','settings.manage'],['/product-settings','product','Product settings','settings.manage']]},
 ];
 const visibleGroups=computed(()=>groups.map(group=>({...group,links:group.links.filter(link=>permissionList.value.includes(link[3]))})).filter(group=>group.links.length));
 const title=computed(()=>groups.flatMap(g=>g.links).find(link=>link[0]===route.path)?.[2]||company.value.company_name);
