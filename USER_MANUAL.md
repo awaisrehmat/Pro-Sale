@@ -24,6 +24,8 @@ An Administrator can open **Company Settings** under Administration and edit the
 
 Create suppliers and customers before transactions. A seeded **Walk-in Customer** is available for anonymous retail sales. Create each product with a unique SKU, unit, purchase/sale prices, minimum stock, and optional opening stock. Current stock cannot be typed over later.
 
+Administrators can open **Product Categories** under Administration to create categories and their dependent subcategories. When creating or editing a product, select its category first and then its optional subcategory. Categories or subcategories already assigned to products cannot be deleted; deactivate them when they should no longer be available for new assignments.
+
 Record lists are paginated. Use **Previous** and **Next** below a table to move between pages. Search waits briefly while you type and then refreshes the results automatically.
 
 ## Record a purchase

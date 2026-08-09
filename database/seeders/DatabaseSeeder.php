@@ -37,7 +37,11 @@ class DatabaseSeeder extends Seeder {
         $administratorRole = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'sanctum']);
         $managerRole = Role::firstOrCreate(['name' => 'Manager', 'guard_name' => 'sanctum']);
         $operatorRole = Role::firstOrCreate(['name' => 'Operator', 'guard_name' => 'sanctum']);
-        $administratorRole->syncPermissions($permissions);
+        // Administrator is the unrestricted system role. Sync from the
+        // permission table so newly introduced permissions are included too.
+        $administratorRole->syncPermissions(
+            Permission::where('guard_name', 'sanctum')->get()
+        );
         $managerRole->syncPermissions(array_values(array_diff($permissions, ['users.manage', 'settings.manage'])));
         $operatorRole->syncPermissions([
             'dashboard.view', 'products.view', 'suppliers.view', 'customers.view',

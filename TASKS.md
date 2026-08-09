@@ -48,6 +48,8 @@
   - Administrators can create, edit, assign roles, and activate/deactivate users with API-level permission enforcement.
 - [x] Create Company Settings
   - Administrators can edit company identity and contact details used across all FPDF printables.
+- [x] Create Product Category Configuration
+  - Administrators manage categories and dependent subcategories; products support optional category assignments and safe in-use deletion rules.
 - [x] Create dashboard
   - Includes KPI cards, seven-day activity, receivables/payables, low-stock alerts, and recent activity.
 - [x] Create product screens

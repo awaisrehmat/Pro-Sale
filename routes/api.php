@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\{
     PartyController,
     PdfController,
     ProductController,
+    ProductCategoryController,
     TransactionController,
     UserAdministrationController
 };
@@ -102,4 +103,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('company-settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage');
     Route::post('company-settings/logo', [CompanySettingsController::class, 'uploadLogo'])->middleware('permission:settings.manage');
     Route::delete('company-settings/logo', [CompanySettingsController::class, 'removeLogo'])->middleware('permission:settings.manage');
+
+    Route::get('product-categories', [ProductCategoryController::class, 'index'])->middleware('permission:settings.manage|products.manage');
+    Route::middleware('permission:settings.manage')->prefix('product-categories')->group(function () {
+        Route::post('/', [ProductCategoryController::class, 'storeCategory']);
+        Route::put('{category}', [ProductCategoryController::class, 'updateCategory']);
+        Route::delete('{category}', [ProductCategoryController::class, 'destroyCategory']);
+        Route::post('subcategories', [ProductCategoryController::class, 'storeSubcategory']);
+        Route::put('subcategories/{subcategory}', [ProductCategoryController::class, 'updateSubcategory']);
+        Route::delete('subcategories/{subcategory}', [ProductCategoryController::class, 'destroySubcategory']);
+    });
 });
