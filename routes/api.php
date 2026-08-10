@@ -84,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:payments.view')->group(function () {
         Route::get('payments', [OperationsController::class, 'payments']);
         Route::get('payments/outstanding', [OperationsController::class, 'outstanding'])->middleware('permission:payments.create');
+        Route::get('payments/context', [OperationsController::class, 'paymentContext'])->middleware('permission:payments.create');
         Route::get('payments/{payment}', [OperationsController::class, 'payment']);
         Route::get('payments/{payment}/pdf', [PdfController::class, 'voucher']);
     });

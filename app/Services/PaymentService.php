@@ -15,23 +15,25 @@ class PaymentService
 
             if ($data['payment_type'] === 'supplier_payment') {
                 $party = Supplier::query()->lockForUpdate()->findOrFail($data['supplier_id']);
+                $partyOutstanding = (float) $party->opening_balance
+                    + (float) $party->purchases()->where('status', 'completed')->sum('grand_total')
+                    - (float) $party->payments()->where('is_reversed', false)->sum('amount');
                 if (! empty($data['purchase_id'])) {
                     $document = Purchase::query()->lockForUpdate()->where('supplier_id', $party->id)->where('status', 'completed')->findOrFail($data['purchase_id']);
-                    $outstanding = (float) $document->due_amount;
+                    $outstanding = min((float) $document->due_amount, $partyOutstanding);
                 } else {
-                    $outstanding = (float) $party->opening_balance
-                        + (float) $party->purchases()->where('status', 'completed')->sum('grand_total')
-                        - (float) $party->payments()->where('is_reversed', false)->sum('amount');
+                    $outstanding = $partyOutstanding;
                 }
             } else {
                 $party = Customer::query()->lockForUpdate()->findOrFail($data['customer_id']);
+                $partyOutstanding = (float) $party->opening_balance
+                    + (float) $party->sales()->where('status', 'completed')->sum('grand_total')
+                    - (float) $party->payments()->where('is_reversed', false)->sum('amount');
                 if (! empty($data['sale_id'])) {
                     $document = Sale::query()->lockForUpdate()->where('customer_id', $party->id)->where('status', 'completed')->findOrFail($data['sale_id']);
-                    $outstanding = (float) $document->due_amount;
+                    $outstanding = min((float) $document->due_amount, $partyOutstanding);
                 } else {
-                    $outstanding = (float) $party->opening_balance
-                        + (float) $party->sales()->where('status', 'completed')->sum('grand_total')
-                        - (float) $party->payments()->where('is_reversed', false)->sum('amount');
+                    $outstanding = $partyOutstanding;
                 }
             }
 

@@ -35,6 +35,44 @@ class OperationsController extends Controller {
             ?Purchase::where('supplier_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('purchase_date')->get()->map(fn($p)=>['id'=>$p->id,'number'=>$p->purchase_number,'date'=>$p->purchase_date->format('Y-m-d'),'total'=>(float)$p->grand_total,'paid'=>(float)$p->paid_amount,'due'=>(float)$p->due_amount])
             :Sale::where('customer_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('sale_date')->get()->map(fn($s)=>['id'=>$s->id,'number'=>$s->sale_number,'date'=>$s->sale_date->format('Y-m-d'),'total'=>(float)$s->grand_total,'paid'=>(float)$s->paid_amount,'due'=>(float)$s->due_amount]);
         return $this->ok($rows);}
+    public function paymentContext(Request $r){
+        $d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
+        $supplier=$d['payment_type']==='supplier_payment';
+        $party=$supplier?Supplier::findOrFail($d['party_id']):Customer::findOrFail($d['party_id']);
+        $documents=$supplier
+            ?Purchase::where('supplier_id',$party->id)->where('status','completed')->orderBy('purchase_date')->orderBy('id')->get()
+            :Sale::where('customer_id',$party->id)->where('status','completed')->orderBy('sale_date')->orderBy('id')->get();
+        $payments=$party->payments()->where('payment_type',$supplier?'supplier_payment':'customer_payment')
+            ->where('is_reversed',false)->orderBy('payment_date')->orderBy('id')->get();
+        $opening=(float)$party->opening_balance;
+        $billed=(float)$documents->sum('grand_total');
+        $settled=(float)$payments->sum('amount');
+        $events=collect();
+        foreach($documents as $document){
+            $events->push(['date'=>($supplier?$document->purchase_date:$document->sale_date)->format('Y-m-d'),'sort'=>0,'id'=>$document->id,
+                'type'=>$supplier?'Purchase':'Sale','number'=>$supplier?$document->purchase_number:$document->sale_number,
+                'description'=>$supplier?'Supplier invoice added':'Customer invoice raised','increase'=>(float)$document->grand_total,'decrease'=>0,'status'=>ucfirst($document->payment_status)]);
+        }
+        foreach($payments as $payment){
+            $events->push(['date'=>$payment->payment_date->format('Y-m-d'),'sort'=>1,'id'=>$payment->id,
+                'type'=>$supplier?'Payment':'Receipt','number'=>$payment->payment_number,
+                'description'=>ucwords(str_replace('_',' ',$payment->payment_method)).($payment->reference_number?' · '.$payment->reference_number:''),
+                'increase'=>0,'decrease'=>(float)$payment->amount,'status'=>'Posted']);
+        }
+        $running=$opening;
+        $history=$events->sortBy(fn($event)=>sprintf('%s-%d-%010d',$event['date'],$event['sort'],$event['id']))->values()->map(function($event)use(&$running){
+            $running=round($running+$event['increase']-$event['decrease'],2);
+            return [...$event,'running_balance'=>$running];
+        })->reverse()->take(30)->values();
+        $outstanding=$documents->where('due_amount','>',0)->sortByDesc(fn($document)=>$supplier?$document->purchase_date:$document->sale_date)->values()->map(fn($document)=>[
+            'id'=>$document->id,'number'=>$supplier?$document->purchase_number:$document->sale_number,
+            'date'=>($supplier?$document->purchase_date:$document->sale_date)->format('Y-m-d'),'total'=>(float)$document->grand_total,
+            'paid'=>(float)$document->paid_amount,'due'=>(float)$document->due_amount]);
+        return $this->ok(['party'=>['name'=>$party->name,'phone'=>$party->phone,'email'=>$party->email],
+            'summary'=>['direction'=>$supplier?'transfer_out':'transfer_in','direction_label'=>$supplier?'Transfer out':'Transfer in',
+                'opening_balance'=>$opening,'billed_total'=>$billed,'settled_total'=>$settled,'outstanding_balance'=>max(0,round($opening+$billed-$settled,2)),
+                'open_documents'=>$outstanding->count()],'outstanding'=>$outstanding,'history'=>$history]);
+    }
     public function report(string $type,Request $r){
         $payload=match($type){
             'stock'=>$this->stockReport($r,false),
