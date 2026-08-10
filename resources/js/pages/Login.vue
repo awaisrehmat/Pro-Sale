@@ -5,10 +5,26 @@ import api from '../services/api';
 import AppIcon from '../components/common/AppIcon.vue';
 
 const email=ref('admin@example.com'),password=ref('password'),error=ref(''),loading=ref(false),showPassword=ref(false),router=useRouter();
-const company=ref({company_name:'Stock Manager',company_tagline:'Simple business operations',company_address:''});
+const company=ref({company_name:'Stock Manager',company_tagline:'Simple business operations',company_address:'',company_logo_url:null});
 const companyMark=computed(()=>company.value.company_name?.replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'CO');
 onMounted(async()=>{try{const {data}=await api.get('/company-profile');company.value=data.data}catch{}});
 async function submit(){error.value='';loading.value=true;try{const {data}=await api.post('/login',{email:email.value,password:password.value});localStorage.setItem('token',data.data.token);localStorage.setItem('permissions',JSON.stringify(data.data.permissions||[]));localStorage.setItem('user',JSON.stringify(data.data.user));router.push('/')}catch(e){error.value=e.response?.data?.errors?.email?.[0]||e.response?.data?.message||'Unable to log in.'}finally{loading.value=false}}
 </script>
 
-<template><div class="login-page"><div class="login-visual"><div class="login-brand"><div class="brand-mark large">{{companyMark}}</div><div><strong>{{company.company_name}}</strong><span>{{company.company_tagline||'Business operations'}}</span></div></div><div class="login-message"><span class="eyebrow">One workspace</span><h1>{{company.company_tagline||'Purchasing, sales, and stock—kept in sync.'}}</h1><p>Record daily transactions, protect inventory, follow balances, and print professional documents from one focused system.</p><div class="login-features"><span>✓ Real-time stock ledger</span><span>✓ Weighted-average costing</span><span>✓ Receipt and payment vouchers</span></div></div><small>{{company.company_address||company.company_name}}</small></div><div class="login-form-wrap"><form class="login-card" @submit.prevent="submit"><div class="mobile-login-brand"><div class="brand-mark">{{companyMark}}</div><strong>{{company.company_name}}</strong></div><span class="eyebrow">Secure access</span><h2>Welcome back</h2><p>Sign in to continue to {{company.company_name}}.</p><div v-if="error" class="error">{{error}}</div><div class="field"><label>Email address</label><input v-model.trim="email" type="email" autocomplete="username" placeholder="admin@example.com" required></div><div class="field"><label>Password</label><div class="password-field"><input v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="Enter password" required><button type="button" class="password-toggle" :title="showPassword?'Hide password':'Show password'" @click="showPassword=!showPassword"><AppIcon name="eye"/></button></div></div><button class="login-button with-icon" :disabled="loading"><span v-if="loading" class="spinner"></span>{{loading?'Signing in…':`Sign in to ${company.company_name}`}}</button><div class="login-help"><span class="live-dot"></span>Protected with Laravel Sanctum</div></form></div></div></template>
+<template>
+<div class="login-page">
+ <div class="login-visual">
+  <div class="login-brand"><div class="brand-mark large" :class="{'has-logo':company.company_logo_url}"><img v-if="company.company_logo_url" :src="company.company_logo_url" :alt="`${company.company_name} logo`"><template v-else>{{companyMark}}</template></div><div><strong>{{company.company_name}}</strong><span>{{company.company_tagline||'Business operations'}}</span></div></div>
+  <div class="login-message"><span class="eyebrow">One workspace</span><h1>{{company.company_tagline||'Purchasing, sales, and stock—kept in sync.'}}</h1><p>Record daily transactions, protect inventory, follow balances, and print professional documents from one focused system.</p><div class="login-features"><span>✓ Real-time stock ledger</span><span>✓ Weighted-average costing</span><span>✓ Receipt and payment vouchers</span></div></div>
+  <small>{{company.company_address||company.company_name}}</small>
+ </div>
+ <div class="login-form-wrap"><form class="login-card" @submit.prevent="submit">
+  <div class="mobile-login-brand"><div class="brand-mark" :class="{'has-logo':company.company_logo_url}"><img v-if="company.company_logo_url" :src="company.company_logo_url" :alt="`${company.company_name} logo`"><template v-else>{{companyMark}}</template></div><strong>{{company.company_name}}</strong></div>
+  <span class="eyebrow">Secure access</span><h2>Welcome back</h2><p>Sign in to continue to {{company.company_name}}.</p>
+  <div v-if="error" class="error">{{error}}</div>
+  <div class="field"><label>Email address</label><input v-model.trim="email" type="email" autocomplete="username" placeholder="admin@example.com" required></div>
+  <div class="field"><label>Password</label><div class="password-field"><input v-model="password" :type="showPassword?'text':'password'" autocomplete="current-password" placeholder="Enter password" required><button type="button" class="password-toggle" :title="showPassword?'Hide password':'Show password'" @click="showPassword=!showPassword"><AppIcon name="eye"/></button></div></div>
+  <button class="login-button with-icon" :disabled="loading"><span v-if="loading" class="spinner"></span>{{loading?'Signing in…':`Sign in to ${company.company_name}`}}</button>
+ </form></div>
+</div>
+</template>

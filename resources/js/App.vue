@@ -31,7 +31,7 @@ onMounted(async()=>{
 <div v-if="logged" class="app-shell">
  <div v-if="mobileOpen" class="sidebar-backdrop" @click="mobileOpen=false"></div>
  <aside :class="{open:mobileOpen}">
-  <div class="brand"><div class="brand-mark">{{companyMark}}</div><div><strong>{{company.company_name}}</strong><span>{{company.company_tagline||'Business operations'}}</span></div></div>
+  <div class="brand"><div class="brand-mark" :class="{'has-logo':company.company_logo_url}"><img v-if="company.company_logo_url" :src="company.company_logo_url" :alt="`${company.company_name} logo`"><template v-else>{{companyMark}}</template></div><div><strong>{{company.company_name}}</strong><span>{{company.company_tagline||'Business operations'}}</span></div></div>
   <nav><section v-for="group in visibleGroups" :key="group.label"><div class="nav-label">{{group.label}}</div><RouterLink v-for="[to,icon,label] in group.links" :to="to" :key="to" @click="mobileOpen=false"><span class="nav-icon"><AppIcon :name="icon" :size="15"/></span>{{label}}</RouterLink></section></nav>
   <div class="sidebar-footer"><div class="user-chip"><span>{{user?.name?.slice(0,1).toUpperCase()||'U'}}</span><div><strong>{{user?.name||'User'}}</strong><small>{{user?.roles?.[0]?.name||'Assigned user'}}</small></div></div><button class="icon-button" title="Log out" @click="logout"><AppIcon name="logout"/></button></div>
  </aside>
