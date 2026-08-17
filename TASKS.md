@@ -15,7 +15,7 @@
 ## Phase 2: Database
 
 - [x] Create users table
-- [x] Create products table
+- [x] Create products table 
 - [x] Create suppliers table
 - [x] Create customers table
 - [x] Create purchases tables
