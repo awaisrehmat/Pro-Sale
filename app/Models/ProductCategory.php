@@ -2,6 +2,7 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 class ProductCategory extends Model {
+    use \App\Models\Concerns\BelongsToCompany;
     protected $guarded=[];
     protected function casts():array{return ['is_active'=>'boolean'];}
     public function subcategories(){return $this->hasMany(ProductSubcategory::class);}

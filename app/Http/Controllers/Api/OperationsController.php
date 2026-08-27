@@ -1,12 +1,14 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Models\{Customer,Payment,Product,Purchase,Sale,StockMovement,Supplier};
+use App\Models\{Company,Customer,Payment,Product,Purchase,Sale,StockMovement,Supplier};
+use App\Tenancy\CompanyContext;
 use App\Services\{PaymentService,StockService};
 use App\Support\Numbers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Support\TenantRule;
 class OperationsController extends Controller {
     public function dashboard(){
         $month=now()->startOfMonth();$sales=Sale::where('status','completed')->whereDate('sale_date','>=',$month)->get();
@@ -24,11 +26,11 @@ class OperationsController extends Controller {
             'activity'=>$activity,'recent_purchases'=>Purchase::with('supplier')->latest()->limit(5)->get(),'recent_sales'=>Sale::with('customer')->latest()->limit(5)->get()]);
     }
     public function movements(Request $r){return $this->ok(StockMovement::with('product')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('reference_number','like',"%$s%")->orWhere('movement_type','like',"%$s%")->orWhereHas('product',fn($p)=>$p->where('name','like',"%$s%")->orWhere('sku','like',"%$s%"))))->latest('movement_date')->paginate(20));}
-    public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>'required|exists:products,id','adjustment_date'=>'required|date','adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
+    public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>['required',TenantRule::exists('products')],'adjustment_date'=>'required|date','adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
         return $this->ok($s->adjust($d,$r->user()->id),'Stock adjusted successfully.',201);}
     public function payments(Request $r){return $this->ok(Payment::with('supplier','customer')->when($r->payment_type,fn($q,$v)=>$q->where('payment_type',$v))->when($r->date_from,fn($q,$v)=>$q->whereDate('payment_date','>=',$v))->when($r->date_to,fn($q,$v)=>$q->whereDate('payment_date','<=',$v))->latest('payment_date')->paginate(20));}
     public function payment(Payment $payment){return $this->ok($payment->load('supplier','customer','purchase','sale'));}
-    public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>'nullable|required_if:payment_type,supplier_payment|exists:suppliers,id','customer_id'=>'nullable|required_if:payment_type,customer_payment|exists:customers,id','purchase_id'=>'nullable|exists:purchases,id','sale_id'=>'nullable|exists:sales,id','amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
+    public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>['nullable','required_if:payment_type,supplier_payment',TenantRule::exists('suppliers')],'customer_id'=>['nullable','required_if:payment_type,customer_payment',TenantRule::exists('customers')],'purchase_id'=>['nullable',TenantRule::exists('purchases')],'sale_id'=>['nullable',TenantRule::exists('sales')],'amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
         return $this->ok($service->record($d,$r->user()->id),$d['payment_type']==='customer_payment'?'Receipt voucher created successfully.':'Payment voucher created successfully.',201);}
     public function outstanding(Request $r){$d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
         $rows=$d['payment_type']==='supplier_payment'
@@ -74,7 +76,17 @@ class OperationsController extends Controller {
                 'open_documents'=>$outstanding->count()],'outstanding'=>$outstanding,'history'=>$history]);
     }
     public function report(string $type,Request $r){
-        $payload=match($type){
+        return $this->ok($this->reportPayload($type,$r));
+    }
+    public function consolidatedReport(string $type,Request $r){
+        abort_unless($r->user()->is_group_admin&&$r->user()->can('reports.consolidated'),403);
+        $context=app(CompanyContext::class);$original=$context->company();$payloads=collect();
+        try{foreach(Company::where('group_id',$r->user()->group_id)->where('is_active',true)->orderBy('name')->get() as $company){$context->set($company);$payload=$this->reportPayload($type,$r);$payload['rows']=collect($payload['rows']??[])->map(fn($row)=>['company'=>$company->name,...$row])->all();foreach(($payload['details']??[]) as $key=>$detail)$payload['details'][$key]=collect($detail)->map(fn($row)=>['company'=>$company->name,...$row])->all();$payloads->push($payload);}}finally{if($original)$context->set($original);else $context->clear();}
+        $summary=[];foreach($payloads as $payload)foreach(($payload['summary']??[]) as $key=>$value)if(is_numeric($value)&&!str_contains($key,'percent'))$summary[$key]=($summary[$key]??0)+(float)$value;
+        if(isset($summary['revenue'],$summary['gross_profit']))$summary['margin_percent']=$summary['revenue']>0?round($summary['gross_profit']/$summary['revenue']*100,1):0;
+        return $this->ok(['rows'=>$payloads->flatMap(fn($p)=>$p['rows']??[])->values(),'summary'=>$summary,'details'=>['receivables'=>$payloads->flatMap(fn($p)=>$p['details']['receivables']??[])->values(),'payables'=>$payloads->flatMap(fn($p)=>$p['details']['payables']??[])->values()],'period'=>['from'=>$r->date_from,'to'=>$r->date_to,'position_as_of'=>$r->date_to],'consolidated'=>true]);
+    }
+    private function reportPayload(string $type,Request $r):array{return match($type){
             'stock'=>$this->stockReport($r,false),
             'stock-ledger'=>$this->stockLedgerReport($r),
             'low-stock'=>$this->stockReport($r,true),
@@ -83,7 +95,6 @@ class OperationsController extends Controller {
             'profit'=>$this->profitReport($r),
             'financial'=>$this->financialReport($r),
             default=>throw ValidationException::withMessages(['report'=>'Unknown report.'])};
-        return $this->ok($payload);
     }
 
     private function stockReport(Request $r,bool $lowOnly):array{

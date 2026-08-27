@@ -9,7 +9,7 @@ const email=ref('admin@example.com'),password=ref('password'),error=ref(''),load
 const company=ref({company_name:'Stock Manager',company_tagline:'Simple business operations',company_address:'',company_logo_url:null});
 const companyMark=computed(()=>company.value.company_name?.replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'CO');
 onMounted(async()=>{try{const {data}=await api.get('/company-profile');company.value=data.data}catch{}});
-async function submit(){error.value='';loading.value=true;try{const {data}=await api.post('/login',{email:email.value,password:password.value});setAuth({token:data.data.token,user:data.data.user,permissions:data.data.permissions||[]});await router.push('/')}catch(e){error.value=e.response?.data?.errors?.email?.[0]||e.response?.data?.message||'Unable to log in.'}finally{loading.value=false}}
+async function submit(){error.value='';loading.value=true;try{const {data}=await api.post('/login',{email:email.value,password:password.value});setAuth(data.data);await router.push('/')}catch(e){error.value=e.response?.data?.errors?.email?.[0]||e.response?.data?.message||'Unable to log in.'}finally{loading.value=false}}
 </script>
 
 <template>

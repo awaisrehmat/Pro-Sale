@@ -4,10 +4,11 @@ use App\Http\Controllers\Controller;
 use App\Models\{Product,UnitOfMeasurement};
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Support\TenantRule;
 class ProductController extends Controller {
-    private function rules(?Product $p=null):array{return ['name'=>'required|string|max:255','sku'=>'required|string|max:100|unique:products,sku,'.($p?->id??'NULL'),
-        'barcode'=>'nullable|string|max:100|unique:products,barcode,'.($p?->id??'NULL'),'description'=>'nullable|string','unit'=>'nullable|required_without:unit_of_measurement_id|string|max:30','unit_of_measurement_id'=>'nullable|exists:units_of_measurement,id',
-        'product_category_id'=>'nullable|exists:product_categories,id','product_subcategory_id'=>['nullable',Rule::exists('product_subcategories','id')->where(fn($q)=>$q->where('product_category_id',request('product_category_id')))],
+    private function rules(?Product $p=null):array{return ['name'=>'required|string|max:255','sku'=>['required','string','max:100',TenantRule::unique('products','sku')->ignore($p)],
+        'barcode'=>['nullable','string','max:100',TenantRule::unique('products','barcode')->ignore($p)],'description'=>'nullable|string','unit'=>'nullable|required_without:unit_of_measurement_id|string|max:30','unit_of_measurement_id'=>['nullable',TenantRule::exists('units_of_measurement')],
+        'product_category_id'=>['nullable',TenantRule::exists('product_categories')],'product_subcategory_id'=>['nullable',TenantRule::exists('product_subcategories')->where(fn($q)=>$q->where('product_category_id',request('product_category_id')))],
         'purchase_price'=>'required|numeric|min:0','sale_price'=>'required|numeric|min:0','minimum_stock_level'=>'required|numeric|min:0','is_active'=>'boolean'];}
     public function index(Request $r){$q=Product::with('category:id,name','subcategory:id,name','unitOfMeasurement:id,name,symbol')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('name','like',"%$s%")->orWhere('sku','like',"%$s%")->orWhere('barcode','like',"%$s%")))
         ->when($r->has('active'),fn($q)=>$q->where('is_active',$r->boolean('active')));return $this->ok($q->orderBy($r->get('sort','name'),$r->get('direction','asc'))->paginate($r->integer('per_page',15)));}

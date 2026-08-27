@@ -1,5 +1,11 @@
 # Stock Manager User Manual
 
+## Working with multiple companies
+
+Use the company selector in the top navigation before recording or reviewing activity. Products, stock, customers, suppliers, purchases, sales, payments, document numbers, company identity, and normal reports belong only to the selected company.
+
+Group administrators create companies under **Group → Companies** and assign users under **User administration → Company access**. Authorized administrators can change **Reporting scope** on Reports from **Selected company** to **Consolidated group**; consolidated rows include their originating company.
+
 ## Getting started
 
 1. Open the application and sign in with the administrator email and password configured during installation.

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
+    use \App\Models\Concerns\BelongsToCompany;
     protected $fillable = ['key', 'value'];
 
     public static function company(): array

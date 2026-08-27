@@ -4,7 +4,12 @@ This document is the implementation reference for what the application is trying
 
 ## Scope
 
-Stock Manager is a role-based system for:
+Stock Manager is a multi-company, role-based system for:
+
+- A main group containing multiple operational companies
+- Strict company isolation for all operational and configuration records
+- User membership in one or more companies with an active-company switcher
+- Authorized consolidated reporting across the group
 
 - Products and current inventory
 - Product categories and dependent subcategories
@@ -18,6 +23,15 @@ Stock Manager is a role-based system for:
 - Operational and financial reports
 - Administrator-managed users, roles, and permissions
 - Administrator-managed company details used on official printables
+
+## Multi-company request flow
+
+1. Login returns the user's active company memberships.
+2. The frontend stores the selected company and sends `X-Company-ID` on authenticated requests.
+3. The server verifies membership and establishes `CompanyContext` before route binding.
+4. Tenant model scopes restrict every operational query to the active company.
+5. New tenant rows automatically receive the active `company_id`.
+6. Group consolidation explicitly iterates active companies under group-admin authorization; ordinary screens never bypass tenant scope.
 
 The system does not include approval workflows, quotations, requisitions, multiple warehouses, branches, or companies.
 

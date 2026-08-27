@@ -1,5 +1,6 @@
 import {createRouter,createWebHistory} from 'vue-router';
 import Login from '../pages/Login.vue';import Dashboard from '../pages/Dashboard.vue';import ListPage from '../pages/ListPage.vue';import TransactionForm from '../pages/TransactionForm.vue';import Reports from '../pages/Reports.vue';import UserAdministration from '../pages/UserAdministration.vue';import CompanySettings from '../pages/CompanySettings.vue';import ProductCategories from '../pages/ProductCategories.vue';import {can} from '../services/auth';
+import Companies from '../pages/Companies.vue';
 const resources={products:'products.view',suppliers:'suppliers.view',customers:'customers.view',purchases:'purchases.view',sales:'sales.view',payments:'payments.view','stock-movements':'stock.view'};
 const routes=[
  {path:'/login',component:Login},
@@ -11,8 +12,21 @@ const routes=[
  {path:'/users',component:UserAdministration,meta:{auth:true,permission:'users.manage'}},
  {path:'/company-settings',component:CompanySettings,meta:{auth:true,permission:'settings.manage'}},
  {path:'/product-settings',component:ProductCategories,meta:{auth:true,permission:'settings.manage'}},
+ {path:'/companies',component:Companies,meta:{auth:true,permission:'companies.manage'}},
  {path:'/product-categories',redirect:'/product-settings'},
 ];
 const router=createRouter({history:createWebHistory(),routes});
-router.beforeEach(to=>{if(to.meta.auth&&!localStorage.getItem('token'))return'/login';if(to.meta.permission&&!can(to.meta.permission))return'/';return true});
+router.beforeEach(to=>{
+ const token=localStorage.getItem('token');
+ if(to.meta.auth&&!token)return'/login';
+ if(to.meta.permission&&!can(to.meta.permission)){
+  const fallback=routes.find(route=>route.meta?.auth&&route.meta?.permission&&can(route.meta.permission));
+  if(fallback&&fallback.path!==to.path)return fallback.path;
+  // Let the page mount when cached permissions are missing. App.vue then
+  // validates the token with /user and clears stale browser sessions safely.
+  // Returning "/" here while already navigating to "/" creates a redirect loop.
+  return true;
+ }
+ return true;
+});
 export default router;

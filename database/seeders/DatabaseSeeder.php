@@ -1,6 +1,7 @@
 <?php
 namespace Database\Seeders;
-use App\Models\{Customer,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
+use App\Models\{Company,Customer,Group,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
+use App\Tenancy\CompanyContext;
 use App\Services\{PurchaseService,SaleService,StockService};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -8,15 +9,23 @@ use Spatie\Permission\Models\{Permission,Role};
 use Spatie\Permission\PermissionRegistrar;
 class DatabaseSeeder extends Seeder {
     public function run():void{
-        $user=User::updateOrCreate(['email'=>env('DEFAULT_USER_EMAIL','admin@example.com')],['name'=>env('DEFAULT_USER_NAME','Admin'),'password'=>env('DEFAULT_USER_PASSWORD','password')]);
+        $group=Group::firstOrCreate(['code'=>'MAIN'],['name'=>'Main Group','is_active'=>true]);
+        $user=User::updateOrCreate(['email'=>env('DEFAULT_USER_EMAIL','admin@example.com')],['group_id'=>$group->id,'name'=>env('DEFAULT_USER_NAME','Admin'),'password'=>env('DEFAULT_USER_PASSWORD','password'),'is_group_admin'=>true,'is_active'=>true]);
         $this->seedRolesAndPermissions($user);
+        $companies=collect([['name'=>'Main Trading Company','code'=>'MAIN'],['name'=>'Group Distribution Company','code'=>'DIST']])->map(fn($row)=>Company::firstOrCreate(['group_id'=>$group->id,'code'=>$row['code']],['name'=>$row['name'],'is_active'=>true]));
+        $user->companies()->syncWithoutDetaching($companies->pluck('id'));
+        foreach($companies as $index=>$company){app(CompanyContext::class)->set($company);$this->seedCompany($user,$index===0&&filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL));}
+    }
+
+    private function seedCompany(User $user,bool $demo):void{
         Customer::updateOrCreate(['is_walk_in'=>true],['name'=>'Walk-in Customer','opening_balance'=>0,'is_active'=>true]);
-        foreach(['app_name'=>'Stock Manager','company_name'=>'Stock Manager','company_tagline'=>'Procurement, Sales and Inventory','company_address'=>'','company_phone'=>'','company_email'=>'','company_website'=>'','company_tax_number'=>'','company_logo'=>'','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->insertOrIgnore(['key'=>$key,'value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
+        $company=app(CompanyContext::class)->company();
+        foreach(['app_name'=>$company->name,'company_name'=>$company->name,'company_tagline'=>'Procurement, Sales and Inventory','company_address'=>'','company_phone'=>'','company_email'=>'','company_website'=>'','company_tax_number'=>'','company_logo'=>'','currency'=>'PKR','quantity_precision'=>'3'] as $key=>$value) DB::table('settings')->insertOrIgnore(['company_id'=>$company->id,'key'=>$key,'value'=>$value,'created_at'=>now(),'updated_at'=>now()]);
         foreach([['Piece','pc',0],['Kilogram','kg',3],['Gram','g',3],['Litre','L',3],['Metre','m',3],['Box','box',0],['Pack','pack',0],['Dozen','doz',0],['Carton','ctn',0],['Ream','ream',0],['Bag','bag',0],['Bottle','bottle',0],['Roll','roll',0]] as [$name,$symbol,$places]) UnitOfMeasurement::firstOrCreate(['symbol'=>$symbol],['name'=>$name,'decimal_places'=>$places,'is_active'=>true]);
         $unitAliases=['piece'=>'pc','pieces'=>'pc','pcs'=>'pc'];
         Product::whereNull('unit_of_measurement_id')->get()->each(function(Product $product)use($unitAliases){$symbol=$unitAliases[strtolower($product->unit)]??$product->unit;$uom=UnitOfMeasurement::whereRaw('LOWER(symbol) = ?', [strtolower($symbol)])->first();if($uom)$product->update(['unit_of_measurement_id'=>$uom->id]);});
         $this->seedProductCategories();
-        if(filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL)){
+        if($demo){
             $this->seedDemoData($user);
             $this->seedProductCategories();
         }
@@ -37,6 +46,7 @@ class DatabaseSeeder extends Seeder {
             'reports.view',
             'users.manage',
             'settings.manage',
+            'companies.manage', 'reports.consolidated',
         ];
         foreach ($permissions as $permission) Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'sanctum']);
         $administratorRole = Role::firstOrCreate(['name' => 'Administrator', 'guard_name' => 'sanctum']);

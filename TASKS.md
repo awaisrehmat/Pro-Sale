@@ -14,6 +14,9 @@
 
 ## Phase 2: Database
 
+- [x] Add main-group and multi-company tenancy
+  - Company memberships, tenant-owned records, company-specific unique constraints, isolated numbering/settings, company switching, and consolidated reports are implemented and tested.
+
 - [x] Create users table
 - [x] Create products table 
 - [x] Create suppliers table

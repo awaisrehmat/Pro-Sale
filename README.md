@@ -1,8 +1,8 @@
 # Stock Manager
 
-A role-based procurement, sales, payment, and inventory application. Laravel 13 provides a Sanctum-protected REST API with Spatie permissions; Vue 3, Vite, Axios, and Tailwind CSS provide the responsive interface.
+A multi-company, role-based procurement, sales, payment, and inventory application. Laravel 13 provides a Sanctum-protected REST API with Spatie permissions; Vue 3, Vite, Axios, and Tailwind CSS provide the responsive interface. Companies inside one main group have isolated operational data and authorized group administrators can run consolidated reports.
 
-Project behavior and implementation progress are defined in `APPLICATION_FLOWS.md`. Operational instructions are in `USER_MANUAL.md`, and individual development tasks are tracked in `TASKS.md`.
+Project behavior and implementation progress are defined in `APPLICATION_FLOWS.md`. Operational instructions are in `USER_MANUAL.md`, tenancy architecture is in `MULTI_TENANCY.md`, and individual development tasks are tracked in `TASKS.md`.
 
 ## Features
 

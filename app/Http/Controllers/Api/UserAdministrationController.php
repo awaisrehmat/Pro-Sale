@@ -14,7 +14,7 @@ class UserAdministrationController extends Controller
 {
     public function index(Request $request)
     {
-        $users = User::with('roles:id,name')
+        $users = User::with('roles:id,name')->with('companies:id,name,code')->where('group_id',$request->user()->group_id)
             ->when($request->search, fn ($query, $search) => $query->where(
                 fn ($nested) => $nested->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")
             ))
@@ -37,27 +37,32 @@ class UserAdministrationController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)->letters()->numbers()],
             'role' => ['required', 'exists:roles,name'],
             'is_active' => ['required', 'boolean'],
+            'company_ids'=>['required','array','min:1'],'company_ids.*'=>['integer',Rule::exists('companies','id')->where('group_id',$request->user()->group_id)],
         ]);
 
         $user = User::create([
+            'group_id'=>$request->user()->group_id,
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
             'is_active' => $data['is_active'],
         ]);
         $user->assignRole(Role::where('name', $data['role'])->where('guard_name', 'sanctum')->firstOrFail());
+        $user->companies()->sync($data['company_ids']);
 
         return $this->ok($user->load('roles:id,name'), 'User created successfully.', 201);
     }
 
     public function update(Request $request, User $user)
     {
+        abort_unless($user->group_id===$request->user()->group_id,403);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'password' => ['nullable', 'confirmed', Password::min(8)->letters()->numbers()],
             'role' => ['required', 'exists:roles,name'],
             'is_active' => ['required', 'boolean'],
+            'company_ids'=>['required','array','min:1'],'company_ids.*'=>['integer',Rule::exists('companies','id')->where('group_id',$request->user()->group_id)],
         ]);
 
         if ($request->user()->is($user) && ! $data['is_active']) {
@@ -75,6 +80,7 @@ class UserAdministrationController extends Controller
             ...(! empty($data['password']) ? ['password' => $data['password']] : []),
         ]);
         $user->syncRoles([Role::where('name', $data['role'])->where('guard_name', 'sanctum')->firstOrFail()]);
+        $user->companies()->sync($data['company_ids']);
 
         if (! $user->is_active) $user->tokens()->delete();
 

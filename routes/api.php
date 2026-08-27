@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\{
     AuthController,
     CompanySettingsController,
+    CompanyAdministrationController,
     OperationsController,
     PartyController,
     PdfController,
@@ -16,18 +17,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('login', [AuthController::class, 'login']);
-Route::get('company-profile', [CompanySettingsController::class, 'show']);
+Route::get('company-profile', [CompanySettingsController::class, 'publicProfile']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum','company'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('user', function (Request $request) {
         $user = $request->user()->load('roles:id,name');
+        $companies=$user->companies()->where('companies.is_active',true)->orderBy('companies.name')->get(['companies.id','companies.name','companies.code']);
+        $permissions=$user->getAllPermissions()->pluck('name')->when(!$user->is_group_admin,fn($items)=>$items->reject(fn($name)=>in_array($name,['companies.manage','reports.consolidated'])))->values();
         return response()->json([
             'success' => true,
             'message' => 'User retrieved.',
-            'data' => ['user' => $user, 'permissions' => $user->getAllPermissions()->pluck('name')],
+            'data' => ['user' => $user, 'permissions' => $permissions,'companies'=>$companies,'current_company'=>$request->attributes->get('company'),'company_profile'=>\App\Models\Setting::company()],
         ]);
     });
+
+    Route::get('companies', [CompanyAdministrationController::class, 'index']);
+    Route::post('companies', [CompanyAdministrationController::class, 'store'])->middleware('permission:companies.manage');
+    Route::put('companies/{company}', [CompanyAdministrationController::class, 'update'])->middleware('permission:companies.manage');
 
     Route::get('dashboard', [OperationsController::class, 'dashboard'])->middleware('permission:dashboard.view');
 
@@ -93,6 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('reports/{type}', [OperationsController::class, 'report'])
         ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'profit', 'financial'])
         ->middleware('permission:reports.view');
+    Route::get('reports-consolidated/{type}', [OperationsController::class, 'consolidatedReport'])
+        ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'profit', 'financial'])
+        ->middleware('permission:reports.consolidated');
 
     Route::middleware('permission:users.manage')->prefix('users')->group(function () {
         Route::get('/', [UserAdministrationController::class, 'index']);

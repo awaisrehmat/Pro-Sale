@@ -7,9 +7,15 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Company;
+use App\Tenancy\CompanyContext;
 
 class CompanySettingsController extends Controller
 {
+    public function publicProfile()
+    {
+        return response()->json(['success'=>true,'message'=>'Group profile retrieved.','data'=>['company_name'=>env('APP_NAME','Pro Sale Group'),'company_tagline'=>'Multi-company procurement, sales and inventory','company_logo_url'=>null]]);
+    }
     public function show()
     {
         return response()->json(['success' => true, 'message' => 'Company settings retrieved.', 'data' => Setting::company()]);
@@ -32,6 +38,7 @@ class CompanySettingsController extends Controller
             foreach ($data as $key => $value) {
                 Setting::updateOrCreate(['key' => $key], ['value' => $value ?? '']);
             }
+            app(CompanyContext::class)->company()?->update(['name'=>$data['company_name']]);
         });
 
         return response()->json(['success' => true, 'message' => 'Company details updated successfully.', 'data' => Setting::company()]);
@@ -42,7 +49,7 @@ class CompanySettingsController extends Controller
         $request->validate(['logo' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:2048']]);
         $current = Setting::where('key', 'company_logo')->value('value');
         $extension = strtolower($request->file('logo')->extension());
-        $path = $request->file('logo')->storeAs('company-logos', 'company-logo-'.now()->format('YmdHis').'.'.$extension, 'public');
+        $path = $request->file('logo')->storeAs('company-logos', 'company-'.app(CompanyContext::class)->requireId().'-logo-'.now()->format('YmdHis').'.'.$extension, 'public');
         Setting::updateOrCreate(['key' => 'company_logo'], ['value' => $path]);
         if ($current && str_starts_with($current, 'company-logos/')) Storage::disk('public')->delete($current);
 
