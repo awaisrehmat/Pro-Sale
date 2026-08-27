@@ -9,13 +9,13 @@ class VoucherPdfService
 {
     public function generate(Payment $payment): string
     {
-        $payment->loadMissing('supplier', 'customer', 'purchase', 'sale');
+        $payment->loadMissing('supplier', 'customer', 'purchase', 'sale', 'expense.category');
 
         $incoming = $payment->payment_type === 'customer_payment';
         $title = $incoming ? 'RECEIPT VOUCHER' : 'PAYMENT VOUCHER';
         $partyLabel = $incoming ? 'Received From' : 'Paid To';
-        $party = $payment->customer ?? $payment->supplier;
-        $document = $payment->sale?->sale_number ?? $payment->purchase?->purchase_number ?? 'General / Opening Balance';
+        $partyName = $payment->customer?->name ?? $payment->supplier?->name ?? $payment->payee_name ?? 'Not specified';
+        $document = $payment->sale?->sale_number ?? $payment->purchase?->purchase_number ?? $payment->expense?->expense_number ?? 'General / Opening Balance';
         $company = Setting::company();
 
         $pdf = new class extends FPDF {
@@ -80,7 +80,7 @@ class VoucherPdfService
         $this->labelValue($pdf, 'Voucher Date', $payment->payment_date->format('d M Y'), 15, 44, 55);
         $this->labelValue($pdf, 'Payment Method', ucwords(str_replace('_', ' ', $payment->payment_method)), 105, 44, 90);
 
-        $this->labelValue($pdf, $partyLabel, $party?->name ?? 'Not specified', 15, 62, 180);
+        $this->labelValue($pdf, $partyLabel, $partyName, 15, 62, 180);
         $this->labelValue($pdf, 'Linked Transaction', $document, 15, 80, 85);
         $this->labelValue($pdf, 'Reference Number', $payment->reference_number ?: '—', 105, 80, 90);
 

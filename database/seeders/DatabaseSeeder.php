@@ -1,6 +1,6 @@
 <?php
 namespace Database\Seeders;
-use App\Models\{Company,Customer,Group,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
+use App\Models\{Company,Customer,ExpenseCategory,Group,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
 use App\Tenancy\CompanyContext;
 use App\Services\{PurchaseService,SaleService,StockService};
 use Illuminate\Database\Seeder;
@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder {
         $unitAliases=['piece'=>'pc','pieces'=>'pc','pcs'=>'pc'];
         Product::whereNull('unit_of_measurement_id')->get()->each(function(Product $product)use($unitAliases){$symbol=$unitAliases[strtolower($product->unit)]??$product->unit;$uom=UnitOfMeasurement::whereRaw('LOWER(symbol) = ?', [strtolower($symbol)])->first();if($uom)$product->update(['unit_of_measurement_id'=>$uom->id]);});
         $this->seedProductCategories();
+        $this->seedExpenseCategories();
         if($demo){
             $this->seedDemoData($user);
             $this->seedProductCategories();
@@ -43,6 +44,7 @@ class DatabaseSeeder extends Seeder {
             'sales.view', 'sales.create', 'sales.cancel',
             'stock.view', 'stock.adjust',
             'payments.view', 'payments.create',
+            'expenses.view', 'expenses.create', 'expenses.cancel', 'expenses.manage',
             'reports.view',
             'users.manage',
             'settings.manage',
@@ -61,10 +63,17 @@ class DatabaseSeeder extends Seeder {
         $operatorRole->syncPermissions([
             'dashboard.view', 'products.view', 'suppliers.view', 'customers.view',
             'purchases.view', 'purchases.create', 'sales.view', 'sales.create',
-            'stock.view', 'payments.view', 'payments.create', 'reports.view',
+            'stock.view', 'payments.view', 'payments.create', 'expenses.view', 'expenses.create', 'reports.view',
         ]);
         $administrator->syncRoles([$administratorRole]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function seedExpenseCategories(): void
+    {
+        foreach (['Rent', 'Utilities', 'Salaries & Wages', 'Transport & Fuel', 'Office Supplies', 'Repairs & Maintenance', 'Marketing', 'Bank Charges', 'Professional Fees', 'Miscellaneous'] as $name) {
+            ExpenseCategory::firstOrCreate(['name' => $name], ['is_active' => true]);
+        }
     }
 
     private function seedProductCategories(): void

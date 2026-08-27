@@ -280,6 +280,24 @@ Supplier outstanding =
 opening balance + completed purchases - non-reversed payments
 ```
 
+## Expense Flow
+
+```text
+Select active expense category
+    ↓
+Enter date, paid-to name, amount, method, and narration
+    ↓
+Create EX expense reference and PV payment voucher atomically
+    ↓
+Show the voucher in Expenses and Payment Vouchers
+    ↓
+Include the posted amount in cash/bank movement and operating expenses
+    ↓
+If cancelled: retain the expense and reverse its linked voucher
+```
+
+Expense records, categories, payment vouchers, sequences, dashboard totals, and normal reports are isolated by the selected company. Consolidated reports combine authorized group companies and label each row with its company.
+
 ## Customer Receipt Flow
 
 Portal register: **Receipt Vouchers** (`/receipt-vouchers`). Only money received from customers is shown or created here.

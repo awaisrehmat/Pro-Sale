@@ -16,7 +16,7 @@ Authenticated frontend requests send `X-Company-ID`. `ResolveCompany` verifies t
 - Group administrators can create companies and assign user access.
 - Roles determine features; membership determines accessible data.
 
-Products, categories, subcategories, UOMs, suppliers, customers, purchases and items, sales and items, stock movements and adjustments, payments, settings, logos, and document sequences are company-owned. SKU, barcode, document number, category, UOM, setting key, and sequence uniqueness is company-specific.
+Products, product and expense categories, subcategories, UOMs, suppliers, customers, purchases and items, sales and items, expenses, stock movements and adjustments, payments, settings, logos, and document sequences are company-owned. SKU, barcode, document number, category, UOM, setting key, and sequence uniqueness is company-specific.
 
 ## Consolidated reports
 

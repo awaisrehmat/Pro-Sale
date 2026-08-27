@@ -10,10 +10,10 @@ const money=v=>'PKR '+Number(v||0).toLocaleString(undefined,{minimumFractionDigi
 const compact=v=>Number(v||0).toLocaleString(undefined,{notation:'compact',maximumFractionDigits:1});
 const maxActivity=computed(()=>Math.max(1,...d.value.activity.flatMap(x=>[x.sales,x.purchases])));
 const monthMargin=computed(()=>Number(d.value.sales_month)>0?Number(d.value.gross_profit_month)/Number(d.value.sales_month)*100:0);
-const dayTotal=computed(()=>Number(d.value.sales_today||0)+Number(d.value.purchases_today||0));
 const metrics=computed(()=>[
  {label:'Monthly sales',value:money(d.value.sales_month),note:'Revenue this month',tone:'blue',icon:'sale'},
- {label:'Gross profit',value:money(d.value.gross_profit_month),note:`${monthMargin.value.toFixed(1)}% gross margin`,tone:'green',icon:'report'},
+ {label:'Gross profit',value:money(d.value.gross_profit_month),note:`${monthMargin.value.toFixed(1)}% before expenses`,tone:'green',icon:'report'},
+ {label:'Operating profit',value:money(Number(d.value.gross_profit_month||0)-Number(d.value.expenses_month||0)),note:`After ${money(d.value.expenses_month)} expenses`,tone:'amber',icon:'expense'},
  {label:'Inventory value',value:money(d.value.stock_value),note:`${Number(d.value.total_stock||0).toLocaleString()} units on hand`,tone:'violet',icon:'stock'},
  {label:'Active products',value:Number(d.value.total_products||0).toLocaleString(),note:`${d.value.low_stock.length} need attention`,tone:'amber',icon:'product'},
 ]);
@@ -33,7 +33,7 @@ const paymentClass=status=>status==='paid'?'success':status==='partial'?'warning
   <div class="pulse-title"><span>Today</span><strong>{{new Date().toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'short'})}}</strong></div>
   <div><span>Sales</span><strong>{{money(d.sales_today)}}</strong><i class="pulse-dot green"></i></div>
   <div><span>Purchases</span><strong>{{money(d.purchases_today)}}</strong><i class="pulse-dot blue"></i></div>
-  <div><span>Activity value</span><strong>{{money(dayTotal)}}</strong><i class="pulse-dot violet"></i></div>
+  <div><span>Expenses</span><strong>{{money(d.expenses_today)}}</strong><i class="pulse-dot violet"></i></div>
  </section>
 
  <div class="dashboard-metrics"><article class="dashboard-metric" v-for="m in metrics" :key="m.label"><div class="metric-icon" :class="m.tone"><AppIcon :name="m.icon" :size="17"/></div><div class="dashboard-metric-copy"><span>{{m.label}}</span><strong>{{m.value}}</strong><small>{{m.note}}</small></div></article></div>

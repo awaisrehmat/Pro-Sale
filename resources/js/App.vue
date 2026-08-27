@@ -12,7 +12,7 @@ const company=ref({company_name:currentCompany.value?.name||'Stock Manager',comp
 const companyMark=computed(()=>company.value.company_name?.replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'CO');
 const groups=[
  {label:'Overview',links:[['/','dashboard','Dashboard','dashboard.view']]},
- {label:'Operations',links:[['/purchases','purchase','Purchases','purchases.view'],['/sales','sale','Sales','sales.view'],['/payment-vouchers','payment-out','Payment vouchers','payments.view'],['/receipt-vouchers','receipt','Receipt vouchers','payments.view']]},
+ {label:'Operations',links:[['/purchases','purchase','Purchases','purchases.view'],['/sales','sale','Sales','sales.view'],['/expenses','expense','Expenses','expenses.view'],['/payment-vouchers','payment-out','Payment vouchers','payments.view'],['/receipt-vouchers','receipt','Receipt vouchers','payments.view']]},
  {label:'Directory',links:[['/products','product','Products','products.view'],['/suppliers','supplier','Suppliers','suppliers.view'],['/customers','customer','Customers','customers.view']]},
  {label:'Insights',links:[['/stock-movements','stock','Stock ledger','stock.view'],['/reports','report','Reports','reports.view']]},
  {label:'Administration',links:[['/users','customer','User administration','users.manage'],['/company-settings','settings','Company settings','settings.manage'],['/product-settings','product','Product settings','settings.manage']]},

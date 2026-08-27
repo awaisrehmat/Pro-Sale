@@ -9,7 +9,7 @@ Group administrators create companies under **Group → Companies** and assign u
 ## Getting started
 
 1. Open the application and sign in with the administrator email and password configured during installation.
-2. Use the left sidebar to open Dashboard, Products, Suppliers, Customers, Purchases, Sales, Stock, Payment Vouchers, Receipt Vouchers, or Reports.
+2. Use the left sidebar to open Dashboard, Products, Suppliers, Customers, Purchases, Sales, Expenses, Stock, Payment Vouchers, Receipt Vouchers, or Reports.
 3. Use **Log out** when finished.
 
 ## Users, roles, and permissions
@@ -66,9 +66,24 @@ To review or print a sales invoice, open the Sales list and select the eye icon.
 
 The Stock page is the audit ledger. It shows a simple serial number, product name, SKU, movement date and type, transaction reference, quantity in/out, and resulting stock. Internal database IDs are never displayed. Opening stock, purchases, sales, cancellations, and adjustments each produce a movement. For a correction, submit an increase or decrease adjustment with a date and reason. A decrease cannot take stock below zero.
 
+## Expenses
+
+Open **Expenses** to record company operating costs such as rent, utilities, salaries, fuel, repairs, marketing, bank charges, and professional fees. Expense data belongs only to the selected company.
+
+1. Select **New expense**.
+2. Enter the expense date, category, person or business paid, amount, and payment method.
+3. Add an optional bill, cheque, or transfer reference and narration.
+4. Select **Post expense & create PV**.
+
+The system creates an `EX_…` expense reference and a linked `PV_…` Payment Voucher in one transaction. The voucher is visible in both the expense register and **Payment Vouchers**, and its FPDF can be opened from either location. Use **Expense categories** to create, edit, deactivate, or delete unused categories. Categories already used by expenses cannot be deleted.
+
+Posted accounting records are not edited or deleted. If an expense was entered incorrectly, use its cancel action. Cancellation marks the expense cancelled and reverses its linked Payment Voucher, removing it from active cash/bank movement without destroying the audit trail.
+
+The dashboard shows today’s expenses and monthly operating profit. Reports include a dedicated **Expense Report**, operating expenses within **Financial Position**, and net profit after expenses in the **Profit Report**.
+
 ## Payments and balances
 
-Document numbers use a compact type, month, year, and running sequence. For example, `PV_A25-001` is the first Payment Voucher created in January 2025. Month letters run from `A` for January through `L` for December. Prefixes are `PV` for Payment Voucher, `RV` for Receipt Voucher, `SI` for Sales Invoice, and `PO` for Purchase Order/Voucher. Each document type has its own monthly sequence.
+Document numbers use a compact type, month, year, and running sequence. For example, `PV_A25-001` is the first Payment Voucher created in January 2025. Month letters run from `A` for January through `L` for December. Prefixes are `PV` for Payment Voucher, `RV` for Receipt Voucher, `EX` for Expense, `SI` for Sales Invoice, and `PO` for Purchase Order/Voucher. Each document type has its own monthly sequence.
 
 The voucher direction follows normal accounting language:
 

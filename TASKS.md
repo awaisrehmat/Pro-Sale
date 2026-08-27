@@ -26,6 +26,7 @@
 - [x] Create stock movements table
 - [x] Create stock adjustments table
 - [x] Create payments table
+- [x] Add tenant-scoped expense management, categories, automatic payment vouchers, cancellation, PDFs, dashboard totals, and reports
 - [x] Create settings table
   - All domain migrations pass from an empty in-memory database.
 

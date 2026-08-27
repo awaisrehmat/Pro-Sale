@@ -6,7 +6,7 @@ Project behavior and implementation progress are defined in `APPLICATION_FLOWS.m
 
 ## Features
 
-- Products, suppliers, customers, purchases, sales, payments, and stock ledger
+- Products, suppliers, customers, purchases, sales, expenses, payment/receipt vouchers, and stock ledger
 - Transactional inventory updates with row locking and negative-stock prevention
 - Weighted-average costing, saved sale cost, gross-profit reporting
 - Safe purchase and sale cancellation with reversing movements and payments

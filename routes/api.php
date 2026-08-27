@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\{
     AuthController,
     CompanySettingsController,
     CompanyAdministrationController,
+    ExpenseController,
     OperationsController,
     PartyController,
     PdfController,
@@ -105,11 +106,25 @@ Route::middleware(['auth:sanctum','company'])->group(function () {
     Route::post('receipt-vouchers', [OperationsController::class, 'createReceiptVoucher'])->middleware('permission:payments.create');
     Route::post('payments', [OperationsController::class, 'pay'])->middleware('permission:payments.create');
 
+    Route::middleware('permission:expenses.view')->group(function () {
+        Route::get('expenses', [ExpenseController::class, 'index']);
+        Route::get('expenses/categories', [ExpenseController::class, 'categories']);
+        Route::get('expenses/{expense}', [ExpenseController::class, 'show']);
+        Route::get('expenses/{expense}/pdf', [PdfController::class, 'expense']);
+    });
+    Route::post('expenses', [ExpenseController::class, 'store'])->middleware('permission:expenses.create');
+    Route::post('expenses/{expense}/cancel', [ExpenseController::class, 'cancel'])->middleware('permission:expenses.cancel');
+    Route::middleware('permission:expenses.manage')->prefix('expense-categories')->group(function () {
+        Route::post('/', [ExpenseController::class, 'storeCategory']);
+        Route::put('{category}', [ExpenseController::class, 'updateCategory']);
+        Route::delete('{category}', [ExpenseController::class, 'destroyCategory']);
+    });
+
     Route::get('reports/{type}', [OperationsController::class, 'report'])
-        ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'profit', 'financial'])
+        ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'expenses', 'profit', 'financial'])
         ->middleware('permission:reports.view');
     Route::get('reports-consolidated/{type}', [OperationsController::class, 'consolidatedReport'])
-        ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'profit', 'financial'])
+        ->whereIn('type', ['stock', 'stock-ledger', 'low-stock', 'purchases', 'sales', 'expenses', 'profit', 'financial'])
         ->middleware('permission:reports.consolidated');
 
     Route::middleware('permission:users.manage')->prefix('users')->group(function () {

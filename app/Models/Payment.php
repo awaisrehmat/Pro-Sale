@@ -9,4 +9,5 @@ class Payment extends Model {
     public function customer(){ return $this->belongsTo(Customer::class); }
     public function purchase(){ return $this->belongsTo(Purchase::class); }
     public function sale(){ return $this->belongsTo(Sale::class); }
+    public function expense(){ return $this->belongsTo(Expense::class); }
 }
