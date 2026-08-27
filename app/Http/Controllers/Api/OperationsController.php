@@ -28,10 +28,16 @@ class OperationsController extends Controller {
     public function movements(Request $r){return $this->ok(StockMovement::with('product')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('reference_number','like',"%$s%")->orWhere('movement_type','like',"%$s%")->orWhereHas('product',fn($p)=>$p->where('name','like',"%$s%")->orWhere('sku','like',"%$s%"))))->latest('movement_date')->paginate(20));}
     public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>['required',TenantRule::exists('products')],'adjustment_date'=>'required|date','adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
         return $this->ok($s->adjust($d,$r->user()->id),'Stock adjusted successfully.',201);}
-    public function payments(Request $r){return $this->ok(Payment::with('supplier','customer')->when($r->payment_type,fn($q,$v)=>$q->where('payment_type',$v))->when($r->date_from,fn($q,$v)=>$q->whereDate('payment_date','>=',$v))->when($r->date_to,fn($q,$v)=>$q->whereDate('payment_date','<=',$v))->latest('payment_date')->paginate(20));}
+    public function payments(Request $r){return $this->voucherIndex($r,$r->payment_type);}
+    public function paymentVouchers(Request $r){return $this->voucherIndex($r,'supplier_payment');}
+    public function receiptVouchers(Request $r){return $this->voucherIndex($r,'customer_payment');}
     public function payment(Payment $payment){return $this->ok($payment->load('supplier','customer','purchase','sale'));}
+    public function paymentVoucher(Payment $payment){abort_unless($payment->payment_type==='supplier_payment',404);return $this->payment($payment);}
+    public function receiptVoucher(Payment $payment){abort_unless($payment->payment_type==='customer_payment',404);return $this->payment($payment);}
     public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>['nullable','required_if:payment_type,supplier_payment',TenantRule::exists('suppliers')],'customer_id'=>['nullable','required_if:payment_type,customer_payment',TenantRule::exists('customers')],'purchase_id'=>['nullable',TenantRule::exists('purchases')],'sale_id'=>['nullable',TenantRule::exists('sales')],'amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
         return $this->ok($service->record($d,$r->user()->id),$d['payment_type']==='customer_payment'?'Receipt voucher created successfully.':'Payment voucher created successfully.',201);}
+    public function createPaymentVoucher(Request $r,PaymentService $service){$r->merge(['payment_type'=>'supplier_payment']);return $this->pay($r,$service);}
+    public function createReceiptVoucher(Request $r,PaymentService $service){$r->merge(['payment_type'=>'customer_payment']);return $this->pay($r,$service);}
     public function outstanding(Request $r){$d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
         $rows=$d['payment_type']==='supplier_payment'
             ?Purchase::where('supplier_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('purchase_date')->get()->map(fn($p)=>['id'=>$p->id,'number'=>$p->purchase_number,'date'=>$p->purchase_date->format('Y-m-d'),'total'=>(float)$p->grand_total,'paid'=>(float)$p->paid_amount,'due'=>(float)$p->due_amount])
@@ -74,6 +80,19 @@ class OperationsController extends Controller {
             'summary'=>['direction'=>$supplier?'transfer_out':'transfer_in','direction_label'=>$supplier?'Transfer out':'Transfer in',
                 'opening_balance'=>$opening,'billed_total'=>$billed,'settled_total'=>$settled,'outstanding_balance'=>max(0,round($opening+$billed-$settled,2)),
                 'open_documents'=>$outstanding->count()],'outstanding'=>$outstanding,'history'=>$history]);
+    }
+
+    private function voucherIndex(Request $r,?string $paymentType=null){
+        $query=Payment::with('supplier','customer')
+            ->when($paymentType,fn($q,$type)=>$q->where('payment_type',$type))
+            ->when($r->search,function($q,$search){$q->where(function($filter)use($search){$filter->where('payment_number','like',"%$search%")
+                ->orWhere('reference_number','like',"%$search%")
+                ->orWhereHas('supplier',fn($party)=>$party->where('name','like',"%$search%"))
+                ->orWhereHas('customer',fn($party)=>$party->where('name','like',"%$search%"));});})
+            ->when($r->date_from,fn($q,$v)=>$q->whereDate('payment_date','>=',$v))
+            ->when($r->date_to,fn($q,$v)=>$q->whereDate('payment_date','<=',$v))
+            ->latest('payment_date')->latest('id');
+        return $this->ok($query->paginate(20));
     }
     public function report(string $type,Request $r){
         return $this->ok($this->reportPayload($type,$r));

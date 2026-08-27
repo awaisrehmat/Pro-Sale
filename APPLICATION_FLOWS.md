@@ -255,6 +255,8 @@ Create matching stock movement
 
 ## Supplier Payment Flow
 
+Portal register: **Payment Vouchers** (`/payment-vouchers`). Only money paid to suppliers is shown or created here.
+
 ```text
 Select supplier
     ↓
@@ -278,7 +280,9 @@ Supplier outstanding =
 opening balance + completed purchases - non-reversed payments
 ```
 
-## Customer Payment Flow
+## Customer Receipt Flow
+
+Portal register: **Receipt Vouchers** (`/receipt-vouchers`). Only money received from customers is shown or created here.
 
 ```text
 Select customer

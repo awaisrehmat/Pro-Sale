@@ -6,6 +6,8 @@ defineProps({name:String,size:{type:Number,default:16},stroke:{type:Number,defau
 <template v-else-if="name==='purchase'"><path d="M3 5h2l2 11h11l2-7H7"/><circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M14 3v6m-3-3 3 3 3-3"/></template>
 <template v-else-if="name==='sale'"><path d="M6 2h12l2 5-2 3H6L4 7l2-5Z"/><path d="M6 10v11h12V10M9 14h6"/></template>
 <template v-else-if="name==='payment'"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></template>
+<template v-else-if="name==='payment-out'"><rect x="2" y="6" width="15" height="12" rx="2"/><path d="M2 10h15M5 14h3M16 3l5 5-5 5M21 8h-7"/></template>
+<template v-else-if="name==='receipt'"><path d="M5 3h14v18l-2-1.5L15 21l-2-1.5L11 21l-2-1.5L7 21l-2-1.5V3Z"/><path d="M9 8h6M9 12h6M9 16h3"/></template>
 <template v-else-if="name==='product'"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 7 9 5 9-5v10l-9 5-9-5V7Z"/><path d="M12 12v10"/></template>
 <template v-else-if="name==='supplier'"><path d="M3 21V8l9-5 9 5v13"/><path d="M7 21v-6h10v6M8 10h.01M12 10h.01M16 10h.01"/></template>
 <template v-else-if="name==='customer'"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M17 11a4 4 0 0 1 5 4M18 21a6 6 0 0 0-2-4.5"/></template>

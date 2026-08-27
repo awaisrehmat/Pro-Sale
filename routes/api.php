@@ -89,12 +89,20 @@ Route::middleware(['auth:sanctum','company'])->group(function () {
     Route::post('stock-adjustments', [OperationsController::class, 'adjust'])->middleware('permission:stock.adjust');
 
     Route::middleware('permission:payments.view')->group(function () {
+        Route::get('payment-vouchers', [OperationsController::class, 'paymentVouchers']);
+        Route::get('payment-vouchers/{payment}', [OperationsController::class, 'paymentVoucher']);
+        Route::get('payment-vouchers/{payment}/pdf', [PdfController::class, 'paymentVoucher']);
+        Route::get('receipt-vouchers', [OperationsController::class, 'receiptVouchers']);
+        Route::get('receipt-vouchers/{payment}', [OperationsController::class, 'receiptVoucher']);
+        Route::get('receipt-vouchers/{payment}/pdf', [PdfController::class, 'receiptVoucher']);
         Route::get('payments', [OperationsController::class, 'payments']);
         Route::get('payments/outstanding', [OperationsController::class, 'outstanding'])->middleware('permission:payments.create');
         Route::get('payments/context', [OperationsController::class, 'paymentContext'])->middleware('permission:payments.create');
         Route::get('payments/{payment}', [OperationsController::class, 'payment']);
         Route::get('payments/{payment}/pdf', [PdfController::class, 'voucher']);
     });
+    Route::post('payment-vouchers', [OperationsController::class, 'createPaymentVoucher'])->middleware('permission:payments.create');
+    Route::post('receipt-vouchers', [OperationsController::class, 'createReceiptVoucher'])->middleware('permission:payments.create');
     Route::post('payments', [OperationsController::class, 'pay'])->middleware('permission:payments.create');
 
     Route::get('reports/{type}', [OperationsController::class, 'report'])

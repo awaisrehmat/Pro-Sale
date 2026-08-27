@@ -9,7 +9,7 @@ Group administrators create companies under **Group → Companies** and assign u
 ## Getting started
 
 1. Open the application and sign in with the administrator email and password configured during installation.
-2. Use the left sidebar to open Dashboard, Products, Suppliers, Customers, Purchases, Sales, Stock, Payments, or Reports.
+2. Use the left sidebar to open Dashboard, Products, Suppliers, Customers, Purchases, Sales, Stock, Payment Vouchers, Receipt Vouchers, or Reports.
 3. Use **Log out** when finished.
 
 ## Users, roles, and permissions
@@ -75,23 +75,20 @@ The voucher direction follows normal accounting language:
 - **Money in — Receipt Voucher:** money received from a customer.
 - **Money out — Payment Voucher:** money paid to a supplier.
 
-To record an installment:
+Payment and receipt vouchers use separate registers and separate creation forms:
 
-1. Open Payments and select **New record**.
-2. Choose the voucher direction.
-3. Select the supplier or customer.
+1. For money leaving the company, open **Payment Vouchers** and select **New payment voucher**. The form only allows a supplier and creates a `PV` number.
+2. For money entering the company, open **Receipt Vouchers** and select **New receipt voucher**. The form only allows a customer and creates an `RV` number.
+3. Select the supplier or customer shown by that register.
 4. Select an outstanding purchase or sale from **Apply to transaction**.
 5. Enter the installment amount, method, date, and optional reference.
-6. Save the voucher.
+6. Save the voucher. It appears only in its own voucher register.
 
 The purchase or sale immediately updates its paid amount, due amount, and payment status. Repeat these steps for later installments. Open the transaction with its eye icon to see the complete chronological payment history.
 
 Select **General / opening balance** only when the payment is not for a particular purchase or sale. The application rejects an amount above either the selected document balance or the party’s overall outstanding balance. Party ledgers show opening balance, transactions, vouchers, and remaining balance.
 
-Use the eye icon beside a payment to open its details. Select **Open PDF** to generate the official FPDF document:
-
-- Customer payments generate a **Receipt Voucher**.
-- Supplier payments generate a **Payment Voucher**.
+Use the eye icon beside a voucher to open its details. Select **Open PDF** to generate its official FPDF document. Payment Voucher PDFs say **Paid To** and **Amount Paid**; Receipt Voucher PDFs say **Received From** and **Amount Received**.
 
 The PDF shows the party, amount in figures and words, payment method, reference, linked transaction, narration, voucher date, reversal status, and signature spaces. Use the browser PDF viewer to print or download it.
 

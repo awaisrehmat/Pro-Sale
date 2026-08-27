@@ -30,7 +30,7 @@ Supplier outstanding equals opening balance plus completed purchases minus non-r
 
 Authentication: `POST /api/login`, `POST /api/logout`, `GET /api/user`.
 
-Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Payments: `GET|POST /api/payments`. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|low-stock|purchases|sales|profit}`. User administration: `GET|POST /api/users`, `PUT /api/users/{user}`, and `GET /api/users/roles`.
+Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Money out uses `GET|POST /api/payment-vouchers`; money in uses `GET|POST /api/receipt-vouchers`. Each register also has `/{payment}` and `/{payment}/pdf` routes that reject the opposite voucher type. Legacy `/api/payments` routes remain available for compatibility. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|low-stock|purchases|sales|profit|financial}`. User administration: `GET|POST /api/users`, `PUT /api/users/{user}`, and `GET /api/users/roles`.
 
 Successful responses contain `success`, `message`, and `data`. Validation failures contain `success=false`, `message`, and `errors`. Form requests validate transaction payloads; database constraints enforce identity and relationships.
 

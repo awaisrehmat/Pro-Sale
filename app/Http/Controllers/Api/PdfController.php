@@ -9,6 +9,20 @@ use Illuminate\Http\Response;
 
 class PdfController extends Controller
 {
+    public function paymentVoucher(Payment $payment, VoucherPdfService $service): Response
+    {
+        abort_unless($payment->payment_type === 'supplier_payment', 404);
+
+        return $this->voucher($payment, $service);
+    }
+
+    public function receiptVoucher(Payment $payment, VoucherPdfService $service): Response
+    {
+        abort_unless($payment->payment_type === 'customer_payment', 404);
+
+        return $this->voucher($payment, $service);
+    }
+
     public function voucher(Payment $payment, VoucherPdfService $service): Response
     {
         $content = $service->generate($payment);
