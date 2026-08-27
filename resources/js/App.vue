@@ -3,11 +3,11 @@ import {computed,onMounted,ref} from 'vue';
 import {useRoute,useRouter} from 'vue-router';
 import api from './services/api';
 import AppIcon from './components/common/AppIcon.vue';
-import {clearAuth,currentUser,permissions} from './services/auth';
+import {authPermissions,authToken,authUser,clearAuth,setAuth} from './services/auth';
 
 const route=useRoute(),router=useRouter(),mobileOpen=ref(false);
-const logged=computed(()=>route.path!='/login'&&localStorage.getItem('token'));
-const user=ref(currentUser()),permissionList=ref(permissions());
+const logged=computed(()=>route.path!='/login'&&Boolean(authToken.value));
+const user=authUser,permissionList=authPermissions;
 const company=ref({company_name:'Stock Manager',company_tagline:'Business operations'});
 const companyMark=computed(()=>company.value.company_name?.replace(/[^a-z0-9]/gi,'').slice(0,2).toUpperCase()||'CO');
 const groups=[
@@ -22,8 +22,8 @@ const title=computed(()=>groups.flatMap(g=>g.links).find(link=>link[0]===route.p
 async function logout(){try{await api.post('/logout')}finally{clearAuth();router.push('/login')}}
 onMounted(async()=>{
  try{const {data}=await api.get('/company-profile');company.value=data.data}catch{}
- if(!localStorage.getItem('token'))return;
- try{const {data}=await api.get('/user');user.value=data.data.user;permissionList.value=data.data.permissions;localStorage.setItem('user',JSON.stringify(data.data.user));localStorage.setItem('permissions',JSON.stringify(data.data.permissions))}catch{}
+ if(!authToken.value)return;
+ try{const {data}=await api.get('/user');setAuth({token:authToken.value,user:data.data.user,permissions:data.data.permissions})}catch{}
 });
 </script>
 
