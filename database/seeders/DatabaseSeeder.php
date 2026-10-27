@@ -1,8 +1,8 @@
 <?php
 namespace Database\Seeders;
-use App\Models\{Company,Customer,ExpenseCategory,Group,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
+use App\Models\{Company,Customer,Expense,ExpenseCategory,Group,Product,Supplier,User,UnitOfMeasurement,ProductCategory,ProductSubcategory};
 use App\Tenancy\CompanyContext;
-use App\Services\{PurchaseService,SaleService,StockService};
+use App\Services\{ExpenseService,FinancialYearService,PurchaseService,SaleService,StockService};
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\{Permission,Role};
@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder {
         $this->seedRolesAndPermissions($user);
         $companies=collect([['name'=>'Main Trading Company','code'=>'MAIN'],['name'=>'Group Distribution Company','code'=>'DIST']])->map(fn($row)=>Company::firstOrCreate(['group_id'=>$group->id,'code'=>$row['code']],['name'=>$row['name'],'is_active'=>true]));
         $user->companies()->syncWithoutDetaching($companies->pluck('id'));
-        foreach($companies as $index=>$company){app(CompanyContext::class)->set($company);$this->seedCompany($user,$index===0&&filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL));}
+        foreach($companies as $index=>$company){app(CompanyContext::class)->set($company);app(FinancialYearService::class)->ensureCurrent($company);$this->seedCompany($user,$index===0&&filter_var(env('SEED_DEMO_DATA',false),FILTER_VALIDATE_BOOL));}
     }
 
     private function seedCompany(User $user,bool $demo):void{
@@ -45,6 +45,7 @@ class DatabaseSeeder extends Seeder {
             'stock.view', 'stock.adjust',
             'payments.view', 'payments.create',
             'expenses.view', 'expenses.create', 'expenses.cancel', 'expenses.manage',
+            'financial_years.manage',
             'reports.view',
             'users.manage',
             'settings.manage',
@@ -59,7 +60,7 @@ class DatabaseSeeder extends Seeder {
         $administratorRole->syncPermissions(
             Permission::where('guard_name', 'sanctum')->get()
         );
-        $managerRole->syncPermissions(array_values(array_diff($permissions, ['users.manage', 'settings.manage'])));
+        $managerRole->syncPermissions(array_values(array_diff($permissions, ['users.manage', 'settings.manage', 'financial_years.manage'])));
         $operatorRole->syncPermissions([
             'dashboard.view', 'products.view', 'suppliers.view', 'customers.view',
             'purchases.view', 'purchases.create', 'sales.view', 'sales.create',
@@ -149,6 +150,7 @@ class DatabaseSeeder extends Seeder {
             return [$data['sku']=>$product];
         });
 
+        $this->seedDemoExpenses($user);
         if(DB::table('purchases')->where('notes','Demo opening purchase')->exists()) return;
 
         $purchases=app(PurchaseService::class);
@@ -182,5 +184,22 @@ class DatabaseSeeder extends Seeder {
 
         app(StockService::class)->adjust(['product_id'=>$products['PKG-001']->id,'adjustment_date'=>now()->subDay()->toDateString(),'adjustment_type'=>'decrease','quantity'=>2,'reason'=>'Damaged during handling'],$user->id);
         app(StockService::class)->adjust(['product_id'=>$products['STN-002']->id,'adjustment_date'=>now()->toDateString(),'adjustment_type'=>'increase','quantity'=>1,'reason'=>'Count correction'],$user->id);
+    }
+
+    private function seedDemoExpenses(User $user):void
+    {
+        $rows=[
+            [-20,'Rent','Office landlord',45000,'bank_transfer','DEMO-RENT'],
+            [-12,'Utilities','Electric supply company',8500,'bank_transfer','DEMO-UTIL'],
+            [-8,'Transport & Fuel','City Fuel Station',6200,'cash','DEMO-FUEL'],
+            [-5,'Office Supplies','Local Office Store',3800,'card','DEMO-OFFICE'],
+            [-2,'Marketing','Digital Media Agency',12000,'bank_transfer','DEMO-MKT'],
+            [0,'Bank Charges','Business bank charges',750,'bank_transfer','DEMO-BANK'],
+        ];
+        foreach($rows as [$days,$category,$payee,$amount,$method,$reference]){
+            if(Expense::where('reference_number',$reference)->exists())continue;
+            app(ExpenseService::class)->create(['expense_date'=>now()->addDays($days)->toDateString(),'expense_category_id'=>ExpenseCategory::where('name',$category)->firstOrFail()->id,
+                'payee_name'=>$payee,'amount'=>$amount,'payment_method'=>$method,'reference_number'=>$reference,'notes'=>'Demo operating expense'],$user->id);
+        }
     }
 }

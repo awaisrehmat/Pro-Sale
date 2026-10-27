@@ -6,12 +6,14 @@ use App\Models\{Expense,Payment};
 use App\Support\Numbers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Tenancy\FinancialYearContext;
 
 class ExpenseService
 {
     public function create(array $data, int $userId): Expense
     {
         return DB::transaction(function () use ($data, $userId) {
+            app(FinancialYearService::class)->lockActive();
             $expense = Expense::create([
                 ...$data,
                 'expense_number' => Numbers::next('EX', $data['expense_date']),
@@ -39,7 +41,9 @@ class ExpenseService
     public function cancel(Expense $expense, int $userId): Expense
     {
         return DB::transaction(function () use ($expense, $userId) {
+            app(FinancialYearService::class)->lockActive();
             $expense = Expense::query()->lockForUpdate()->findOrFail($expense->id);
+            if($expense->financial_year_id!==app(FinancialYearContext::class)->requireId())throw ValidationException::withMessages(['status'=>'An expense from a closed financial year cannot be cancelled.']);
             if ($expense->status === 'cancelled') {
                 throw ValidationException::withMessages(['status' => 'Expense is already cancelled.']);
             }

@@ -27,6 +27,7 @@
 - [x] Create stock adjustments table
 - [x] Create payments table
 - [x] Add tenant-scoped expense management, categories, automatic payment vouchers, cancellation, PDFs, dashboard totals, and reports
+- [x] Add company-scoped financial years, transaction session IDs, closing snapshots, immutable closure, and opening-balance carry-forward
 - [x] Create settings table
   - All domain migrations pass from an empty in-memory database.
 
@@ -70,7 +71,9 @@
   - Supports Receipt Vouchers, Payment Vouchers, outstanding-document allocation, partial installments, and transaction payment history.
   - Receipt and Payment Vouchers are generated as printable FPDF documents.
 - [x] Create reports
-  - Includes report-specific summaries and filters, status indicators, CSV export, print styling, payment-channel cash flow, receivables/payables, and auditable product-wise stock movement history.
+  - Includes financial-year selection, historical/consolidated sessions, report-specific summaries and filters, status indicators, CSV export, print styling, payment-channel opening/closing cash flow, receivables/payables, and auditable product-wise stock movement history.
+- [x] Create Financial Year administration
+  - Administrators can preview reconciled party, stock, and account closings, close only after year end, and automatically open the next session.
 - [x] Verify responsive layout
   - Compact desktop layout collapses to a single-column mobile layout.
   - UX pass includes responsive login, paginated lists, formatted values, guided transaction entry, loading states, empty states, success feedback, and keyboard-friendly detail dismissal.
@@ -83,4 +86,4 @@
 - [x] Create USER_MANUAL.md
 - [x] Create DEVELOPMENT_GUIDE.md
 - [x] Verify the complete system
-  - Database migration and seeding passed; 11 tests and 59 assertions passed.
+  - Automated tests cover migration, tenancy, inventory, expenses, vouchers, reporting, and financial-year closing/carry-forward.

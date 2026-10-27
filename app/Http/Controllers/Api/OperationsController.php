@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Models\{Company,Customer,Expense,Payment,Product,Purchase,Sale,StockMovement,Supplier};
+use App\Models\{Company,Customer,Expense,FinancialYear,FinancialYearAccountBalance,FinancialYearStockBalance,Payment,Product,Purchase,Sale,StockMovement,Supplier};
 use App\Tenancy\CompanyContext;
 use App\Services\{PaymentService,StockService};
 use App\Support\Numbers;
@@ -9,27 +9,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Support\TenantRule;
+use App\Support\FinancialYearRule;
+use App\Tenancy\FinancialYearContext;
+use App\Services\FinancialYearService;
 class OperationsController extends Controller {
     public function dashboard(){
-        $month=now()->startOfMonth();$sales=Sale::where('status','completed')->whereDate('sale_date','>=',$month)->get();
+        $year=app(FinancialYearContext::class)->financialYear();$yearId=$year->id;$month=now()->startOfMonth();$sales=Sale::where('financial_year_id',$yearId)->where('status','completed')->whereDate('sale_date','>=',$month)->get();
         $cogs=\App\Models\SaleItem::whereIn('sale_id',$sales->pluck('id'))->selectRaw('SUM(quantity * unit_cost) total')->value('total')??0;
         $activity=collect(range(6,0))->map(function($days){
             $date=now()->subDays($days);
-            return ['date'=>$date->format('M d'),'sales'=>(float)Sale::where('status','completed')->whereDate('sale_date',$date)->sum('grand_total'),
-                'purchases'=>(float)Purchase::where('status','completed')->whereDate('purchase_date',$date)->sum('grand_total')];
+            return ['date'=>$date->format('M d'),'sales'=>(float)Sale::currentFinancialYear()->where('status','completed')->whereDate('sale_date',$date)->sum('grand_total'),
+                'purchases'=>(float)Purchase::currentFinancialYear()->where('status','completed')->whereDate('purchase_date',$date)->sum('grand_total')];
         });
+        $position=app(FinancialYearService::class)->preview($year)['summary'];
         return $this->ok(['total_products'=>Product::count(),'total_stock'=>(float)Product::sum('current_stock'),'stock_value'=>(float)Product::selectRaw('SUM(current_stock*average_cost) value')->value('value'),
-            'purchases_today'=>(float)Purchase::where('status','completed')->whereDate('purchase_date',today())->sum('grand_total'),'sales_today'=>(float)Sale::where('status','completed')->whereDate('sale_date',today())->sum('grand_total'),
-            'purchase_month'=>(float)Purchase::where('status','completed')->whereDate('purchase_date','>=',$month)->sum('grand_total'),'sales_month'=>(float)$sales->sum('grand_total'),
+            'financial_year'=>$year,'purchases_today'=>(float)Purchase::where('financial_year_id',$yearId)->where('status','completed')->whereDate('purchase_date',today())->sum('grand_total'),'sales_today'=>(float)Sale::where('financial_year_id',$yearId)->where('status','completed')->whereDate('sale_date',today())->sum('grand_total'),
+            'purchase_month'=>(float)Purchase::where('financial_year_id',$yearId)->where('status','completed')->whereDate('purchase_date','>=',$month)->sum('grand_total'),'sales_month'=>(float)$sales->sum('grand_total'),
             'gross_profit_month'=>(float)$sales->sum('subtotal')-(float)$cogs,
-            'expenses_today'=>(float)Expense::where('status','posted')->whereDate('expense_date',today())->sum('amount'),
-            'expenses_month'=>(float)Expense::where('status','posted')->whereDate('expense_date','>=',$month)->sum('amount'),
+            'expenses_today'=>(float)Expense::where('financial_year_id',$yearId)->where('status','posted')->whereDate('expense_date',today())->sum('amount'),
+            'expenses_month'=>(float)Expense::where('financial_year_id',$yearId)->where('status','posted')->whereDate('expense_date','>=',$month)->sum('amount'),
             'low_stock'=>Product::whereColumn('current_stock','<=','minimum_stock_level')->limit(10)->get(),
-            'supplier_due'=>(float)Purchase::where('status','completed')->sum('due_amount'),'customer_due'=>(float)Sale::where('status','completed')->sum('due_amount'),
-            'activity'=>$activity,'recent_purchases'=>Purchase::with('supplier')->latest()->limit(5)->get(),'recent_sales'=>Sale::with('customer')->latest()->limit(5)->get()]);
+            'supplier_due'=>$position['supplier_payables'],'customer_due'=>$position['customer_receivables'],
+            'activity'=>$activity,'recent_purchases'=>Purchase::currentFinancialYear()->with('supplier')->latest()->limit(5)->get(),'recent_sales'=>Sale::currentFinancialYear()->with('customer')->latest()->limit(5)->get()]);
     }
-    public function movements(Request $r){return $this->ok(StockMovement::with('product')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('reference_number','like',"%$s%")->orWhere('movement_type','like',"%$s%")->orWhereHas('product',fn($p)=>$p->where('name','like',"%$s%")->orWhere('sku','like',"%$s%"))))->latest('movement_date')->paginate(20));}
-    public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>['required',TenantRule::exists('products')],'adjustment_date'=>'required|date','adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
+    public function movements(Request $r){return $this->ok(StockMovement::currentFinancialYear()->with('product')->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('reference_number','like',"%$s%")->orWhere('movement_type','like',"%$s%")->orWhereHas('product',fn($p)=>$p->where('name','like',"%$s%")->orWhere('sku','like',"%$s%"))))->latest('movement_date')->paginate(20));}
+    public function adjust(Request $r,StockService $s){$d=$r->validate(['product_id'=>['required',TenantRule::exists('products')],'adjustment_date'=>['required','date',FinancialYearRule::date()],'adjustment_type'=>'required|in:increase,decrease','quantity'=>'required|numeric|gt:0','reason'=>'required|string|max:255']);
         return $this->ok($s->adjust($d,$r->user()->id),'Stock adjusted successfully.',201);}
     public function payments(Request $r){return $this->voucherIndex($r,$r->payment_type);}
     public function paymentVouchers(Request $r){return $this->voucherIndex($r,['supplier_payment','expense_payment']);}
@@ -37,25 +41,25 @@ class OperationsController extends Controller {
     public function payment(Payment $payment){return $this->ok($payment->load('supplier','customer','purchase','sale','expense.category'));}
     public function paymentVoucher(Payment $payment){abort_unless($payment->payment_type!=='customer_payment',404);return $this->payment($payment);}
     public function receiptVoucher(Payment $payment){abort_unless($payment->payment_type==='customer_payment',404);return $this->payment($payment);}
-    public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>'required|date','payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>['nullable','required_if:payment_type,supplier_payment',TenantRule::exists('suppliers')],'customer_id'=>['nullable','required_if:payment_type,customer_payment',TenantRule::exists('customers')],'purchase_id'=>['nullable',TenantRule::exists('purchases')],'sale_id'=>['nullable',TenantRule::exists('sales')],'amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
+    public function pay(Request $r,PaymentService $service){$d=$r->validate(['payment_date'=>['required','date',FinancialYearRule::date()],'payment_type'=>'required|in:supplier_payment,customer_payment','supplier_id'=>['nullable','required_if:payment_type,supplier_payment',TenantRule::exists('suppliers')],'customer_id'=>['nullable','required_if:payment_type,customer_payment',TenantRule::exists('customers')],'purchase_id'=>['nullable',TenantRule::exists('purchases')],'sale_id'=>['nullable',TenantRule::exists('sales')],'amount'=>'required|numeric|gt:0','payment_method'=>'required|in:cash,bank_transfer,card,other','reference_number'=>'nullable|string','notes'=>'nullable|string']);
         return $this->ok($service->record($d,$r->user()->id),$d['payment_type']==='customer_payment'?'Receipt voucher created successfully.':'Payment voucher created successfully.',201);}
     public function createPaymentVoucher(Request $r,PaymentService $service){$r->merge(['payment_type'=>'supplier_payment']);return $this->pay($r,$service);}
     public function createReceiptVoucher(Request $r,PaymentService $service){$r->merge(['payment_type'=>'customer_payment']);return $this->pay($r,$service);}
     public function outstanding(Request $r){$d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
         $rows=$d['payment_type']==='supplier_payment'
-            ?Purchase::where('supplier_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('purchase_date')->get()->map(fn($p)=>['id'=>$p->id,'number'=>$p->purchase_number,'date'=>$p->purchase_date->format('Y-m-d'),'total'=>(float)$p->grand_total,'paid'=>(float)$p->paid_amount,'due'=>(float)$p->due_amount])
-            :Sale::where('customer_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('sale_date')->get()->map(fn($s)=>['id'=>$s->id,'number'=>$s->sale_number,'date'=>$s->sale_date->format('Y-m-d'),'total'=>(float)$s->grand_total,'paid'=>(float)$s->paid_amount,'due'=>(float)$s->due_amount]);
+            ?Purchase::currentFinancialYear()->where('supplier_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('purchase_date')->get()->map(fn($p)=>['id'=>$p->id,'number'=>$p->purchase_number,'date'=>$p->purchase_date->format('Y-m-d'),'total'=>(float)$p->grand_total,'paid'=>(float)$p->paid_amount,'due'=>(float)$p->due_amount])
+            :Sale::currentFinancialYear()->where('customer_id',$d['party_id'])->where('status','completed')->where('due_amount','>',0)->latest('sale_date')->get()->map(fn($s)=>['id'=>$s->id,'number'=>$s->sale_number,'date'=>$s->sale_date->format('Y-m-d'),'total'=>(float)$s->grand_total,'paid'=>(float)$s->paid_amount,'due'=>(float)$s->due_amount]);
         return $this->ok($rows);}
     public function paymentContext(Request $r){
         $d=$r->validate(['payment_type'=>'required|in:supplier_payment,customer_payment','party_id'=>'required|integer']);
-        $supplier=$d['payment_type']==='supplier_payment';
+        $supplier=$d['payment_type']==='supplier_payment';$year=app(FinancialYearContext::class)->financialYear();
         $party=$supplier?Supplier::findOrFail($d['party_id']):Customer::findOrFail($d['party_id']);
         $documents=$supplier
-            ?Purchase::where('supplier_id',$party->id)->where('status','completed')->orderBy('purchase_date')->orderBy('id')->get()
-            :Sale::where('customer_id',$party->id)->where('status','completed')->orderBy('sale_date')->orderBy('id')->get();
-        $payments=$party->payments()->where('payment_type',$supplier?'supplier_payment':'customer_payment')
+            ?Purchase::where('financial_year_id',$year->id)->where('supplier_id',$party->id)->where('status','completed')->orderBy('purchase_date')->orderBy('id')->get()
+            :Sale::where('financial_year_id',$year->id)->where('customer_id',$party->id)->where('status','completed')->orderBy('sale_date')->orderBy('id')->get();
+        $payments=$party->payments()->where('financial_year_id',$year->id)->where('payment_type',$supplier?'supplier_payment':'customer_payment')
             ->where('is_reversed',false)->orderBy('payment_date')->orderBy('id')->get();
-        $opening=(float)$party->opening_balance;
+        $opening=app(FinancialYearService::class)->partyOpening($year,$supplier?'supplier':'customer',$party->id,(float)$party->opening_balance);
         $billed=(float)$documents->sum('grand_total');
         $settled=(float)$payments->sum('amount');
         $events=collect();
@@ -80,13 +84,13 @@ class OperationsController extends Controller {
             'date'=>($supplier?$document->purchase_date:$document->sale_date)->format('Y-m-d'),'total'=>(float)$document->grand_total,
             'paid'=>(float)$document->paid_amount,'due'=>(float)$document->due_amount]);
         return $this->ok(['party'=>['name'=>$party->name,'phone'=>$party->phone,'email'=>$party->email],
-            'summary'=>['direction'=>$supplier?'transfer_out':'transfer_in','direction_label'=>$supplier?'Transfer out':'Transfer in',
+            'summary'=>['financial_year'=>$year->name,'direction'=>$supplier?'transfer_out':'transfer_in','direction_label'=>$supplier?'Transfer out':'Transfer in',
                 'opening_balance'=>$opening,'billed_total'=>$billed,'settled_total'=>$settled,'outstanding_balance'=>max(0,round($opening+$billed-$settled,2)),
                 'open_documents'=>$outstanding->count()],'outstanding'=>$outstanding,'history'=>$history]);
     }
 
     private function voucherIndex(Request $r,string|array|null $paymentType=null){
-        $query=Payment::with('supplier','customer','expense.category')
+        $query=Payment::currentFinancialYear()->with('supplier','customer','expense.category')
             ->when($paymentType,fn($q,$type)=>is_array($type)?$q->whereIn('payment_type',$type):$q->where('payment_type',$type))
             ->when($r->search,function($q,$search){$q->where(function($filter)use($search){$filter->where('payment_number','like',"%$search%")
                     ->orWhere('reference_number','like',"%$search%")
@@ -103,11 +107,11 @@ class OperationsController extends Controller {
     }
     public function consolidatedReport(string $type,Request $r){
         abort_unless($r->user()->is_group_admin&&$r->user()->can('reports.consolidated'),403);
-        $context=app(CompanyContext::class);$original=$context->company();$payloads=collect();
-        try{foreach(Company::where('group_id',$r->user()->group_id)->where('is_active',true)->orderBy('name')->get() as $company){$context->set($company);$payload=$this->reportPayload($type,$r);$payload['rows']=collect($payload['rows']??[])->map(fn($row)=>['company'=>$company->name,...$row])->all();foreach(($payload['details']??[]) as $key=>$detail)$payload['details'][$key]=collect($detail)->map(fn($row)=>['company'=>$company->name,...$row])->all();$payloads->push($payload);}}finally{if($original)$context->set($original);else $context->clear();}
+        $context=app(CompanyContext::class);$yearContext=app(FinancialYearContext::class);$original=$context->company();$originalYear=$yearContext->financialYear();$payloads=collect();
+        try{foreach(Company::where('group_id',$r->user()->group_id)->where('is_active',true)->orderBy('name')->get() as $company){$context->set($company);app(FinancialYearService::class)->ensureCurrent($company);$payload=$this->reportPayload($type,$r);$payload['rows']=collect($payload['rows']??[])->map(fn($row)=>['company'=>$company->name,...$row])->all();foreach(($payload['details']??[]) as $key=>$detail)$payload['details'][$key]=collect($detail)->map(fn($row)=>['company'=>$company->name,...$row])->all();$payloads->push($payload);}}finally{if($original)$context->set($original);else $context->clear();if($originalYear)$yearContext->set($originalYear);else $yearContext->clear();}
         $summary=[];foreach($payloads as $payload)foreach(($payload['summary']??[]) as $key=>$value)if(is_numeric($value)&&!str_contains($key,'percent'))$summary[$key]=($summary[$key]??0)+(float)$value;
         if(isset($summary['revenue'],$summary['gross_profit']))$summary['margin_percent']=$summary['revenue']>0?round($summary['gross_profit']/$summary['revenue']*100,1):0;
-        return $this->ok(['rows'=>$payloads->flatMap(fn($p)=>$p['rows']??[])->values(),'summary'=>$summary,'details'=>['receivables'=>$payloads->flatMap(fn($p)=>$p['details']['receivables']??[])->values(),'payables'=>$payloads->flatMap(fn($p)=>$p['details']['payables']??[])->values()],'period'=>['from'=>$r->date_from,'to'=>$r->date_to,'position_as_of'=>$r->date_to],'consolidated'=>true]);
+        return $this->ok(['rows'=>$payloads->flatMap(fn($p)=>$p['rows']??[])->values(),'summary'=>$summary,'details'=>['receivables'=>$payloads->flatMap(fn($p)=>$p['details']['receivables']??[])->values(),'payables'=>$payloads->flatMap(fn($p)=>$p['details']['payables']??[])->values()],'period'=>['financial_year'=>$r->financial_year_name,'from'=>$r->date_from,'to'=>$r->date_to,'position_as_of'=>$r->date_to],'consolidated'=>true]);
     }
     private function reportPayload(string $type,Request $r):array{return match($type){
             'stock'=>$this->stockReport($r,false),
@@ -122,30 +126,33 @@ class OperationsController extends Controller {
     }
 
     private function stockReport(Request $r,bool $lowOnly):array{
-        $rows=Product::query()->when($lowOnly,fn($q)=>$q->whereColumn('current_stock','<=','minimum_stock_level'))
-            ->when($r->search,fn($q,$v)=>$q->where(fn($x)=>$x->where('name','like',"%$v%")->orWhere('sku','like',"%$v%")))
-            ->when($r->status==='in_stock',fn($q)=>$q->whereColumn('current_stock','>','minimum_stock_level'))
-            ->when($r->status==='low',fn($q)=>$q->whereColumn('current_stock','<=','minimum_stock_level')->where('current_stock','>',0))
-            ->when($r->status==='out',fn($q)=>$q->where('current_stock','<=',0))->orderBy('name')->get()
-            ->map(fn($p)=>['product'=>$p->name,'sku'=>$p->sku,'unit'=>$p->unit,'current_stock'=>(float)$p->current_stock,
-                'average_cost'=>(float)$p->average_cost,'sale_price'=>(float)$p->sale_price,'stock_value'=>round($p->current_stock*$p->average_cost,2),
-                'minimum_stock'=>(float)$p->minimum_stock_level,'stock_status'=>$p->current_stock<=0?'Out of stock':($p->current_stock<=$p->minimum_stock_level?'Low stock':'In stock')]);
+        $year=$this->reportYear($r);$openings=FinancialYearStockBalance::where('financial_year_id',$year->id)->get()->keyBy('product_id');
+        $movements=StockMovement::where('financial_year_id',$year->id)->orderBy('movement_date')->orderBy('id')->get()->groupBy('product_id');
+        $rows=Product::query()->whereDate('created_at','<=',$year->end_date)->when($r->search,fn($q,$v)=>$q->where(fn($x)=>$x->where('name','like',"%$v%")->orWhere('sku','like',"%$v%")))->orderBy('name')->get()->map(function($p)use($openings,$movements){$opening=$openings->get($p->id);$productMovements=$movements->get($p->id,collect());$quantity=(float)($opening?->opening_quantity??0)+(float)$productMovements->sum('quantity_in')-(float)$productMovements->sum('quantity_out');$last=$productMovements->last();$cost=(float)($last?->unit_cost??$opening?->opening_unit_cost??$p->average_cost);$status=$quantity<=0?'Out of stock':($quantity<=(float)$p->minimum_stock_level?'Low stock':'In stock');return ['product'=>$p->name,'sku'=>$p->sku,'unit'=>$p->unit,'opening_stock'=>(float)($opening?->opening_quantity??0),'current_stock'=>$quantity,'average_cost'=>$cost,'sale_price'=>(float)$p->sale_price,'stock_value'=>round($quantity*$cost,2),'minimum_stock'=>(float)$p->minimum_stock_level,'stock_status'=>$status];});
+        if($lowOnly)$rows=$rows->whereIn('stock_status',['Low stock','Out of stock']);
+        if($r->status==='in_stock')$rows=$rows->where('stock_status','In stock');
+        if($r->status==='low')$rows=$rows->where('stock_status','Low stock');
+        if($r->status==='out')$rows=$rows->where('stock_status','Out of stock');
+        $rows=$rows->values();
         return ['rows'=>$rows,'summary'=>['products'=>$rows->count(),'quantity'=>$rows->sum('current_stock'),'stock_value'=>$rows->sum('stock_value'),
             'low_stock'=>$rows->whereIn('stock_status',['Low stock','Out of stock'])->count()]];
     }
 
     private function stockLedgerReport(Request $r): array
     {
-        $query = StockMovement::with('product:id,name,sku,unit')
+        $year=$this->reportYear($r);
+        $query = StockMovement::with('product:id,name,sku,unit')->where('financial_year_id',$year->id)
             ->when($r->product_id, fn($q,$id)=>$q->where('product_id',$id))
             ->when($r->date_from, fn($q,$date)=>$q->whereDate('movement_date','>=',$date))
             ->when($r->date_to, fn($q,$date)=>$q->whereDate('movement_date','<=',$date))
             ->orderBy('movement_date')->orderBy('id');
         $movements = $query->get();
-        $openingByProduct = StockMovement::query()
+        $snapshots=FinancialYearStockBalance::where('financial_year_id',$year->id)->when($r->product_id,fn($q,$id)=>$q->where('product_id',$id))->pluck('opening_quantity','product_id');
+        $priorMovements = StockMovement::query()->where('financial_year_id',$year->id)
             ->when($r->product_id, fn($q,$id)=>$q->where('product_id',$id))
             ->when($r->date_from, fn($q,$date)=>$q->whereDate('movement_date','<',$date), fn($q)=>$q->whereRaw('1 = 0'))
             ->selectRaw('product_id, COALESCE(SUM(quantity_in - quantity_out),0) balance')->groupBy('product_id')->pluck('balance','product_id');
+        $openingByProduct=$snapshots->map(fn($value)=>(float)$value);foreach($priorMovements as $productId=>$balance)$openingByProduct[$productId]=(float)($openingByProduct[$productId]??0)+(float)$balance;
         $running = $openingByProduct->map(fn($balance)=>(float)$balance)->all();
         $chronologyIssues = 0;
         $rows = $movements->map(function($movement)use(&$running,&$chronologyIssues){
@@ -166,7 +173,7 @@ class OperationsController extends Controller {
     }
 
     private function purchaseReport(Request $r):array{
-        $rows=Purchase::with('supplier')->when($r->date_from,fn($q,$v)=>$q->whereDate('purchase_date','>=',$v))
+        $year=$this->reportYear($r);$rows=Purchase::with('supplier')->where('financial_year_id',$year->id)->when($r->date_from,fn($q,$v)=>$q->whereDate('purchase_date','>=',$v))
             ->when($r->date_to,fn($q,$v)=>$q->whereDate('purchase_date','<=',$v))->when($r->supplier_id,fn($q,$v)=>$q->where('supplier_id',$v))
             ->when($r->payment_status,fn($q,$v)=>$q->where('payment_status',$v))->when($r->status,fn($q,$v)=>$q->where('status',$v))
             ->when($r->product_id,fn($q,$v)=>$q->whereHas('items',fn($x)=>$x->where('product_id',$v)))->latest('purchase_date')->get()
@@ -176,7 +183,7 @@ class OperationsController extends Controller {
     }
 
     private function salesReport(Request $r):array{
-        $rows=Sale::with('customer')->when($r->date_from,fn($q,$v)=>$q->whereDate('sale_date','>=',$v))
+        $year=$this->reportYear($r);$rows=Sale::with('customer')->where('financial_year_id',$year->id)->when($r->date_from,fn($q,$v)=>$q->whereDate('sale_date','>=',$v))
             ->when($r->date_to,fn($q,$v)=>$q->whereDate('sale_date','<=',$v))->when($r->customer_id,fn($q,$v)=>$q->where('customer_id',$v))
             ->when($r->payment_status,fn($q,$v)=>$q->where('payment_status',$v))->when($r->status,fn($q,$v)=>$q->where('status',$v))
             ->when($r->product_id,fn($q,$v)=>$q->whereHas('items',fn($x)=>$x->where('product_id',$v)))->latest('sale_date')->get()
@@ -187,7 +194,7 @@ class OperationsController extends Controller {
 
     private function expenseReport(Request $r): array
     {
-        $expenses=Expense::with('category','payment')->when($r->date_from,fn($q,$v)=>$q->whereDate('expense_date','>=',$v))
+        $year=$this->reportYear($r);$expenses=Expense::with('category','payment')->where('financial_year_id',$year->id)->when($r->date_from,fn($q,$v)=>$q->whereDate('expense_date','>=',$v))
             ->when($r->date_to,fn($q,$v)=>$q->whereDate('expense_date','<=',$v))
             ->when($r->expense_category_id,fn($q,$v)=>$q->where('expense_category_id',$v))
             ->when($r->payment_method,fn($q,$v)=>$q->where('payment_method',$v))
@@ -202,13 +209,13 @@ class OperationsController extends Controller {
     }
 
     private function profitReport(Request $r):array{
-        $rows=Sale::with('items')->where('status','completed')->when($r->date_from,fn($q,$v)=>$q->whereDate('sale_date','>=',$v))
+        $year=$this->reportYear($r);$rows=Sale::with('items')->where('financial_year_id',$year->id)->where('status','completed')->when($r->date_from,fn($q,$v)=>$q->whereDate('sale_date','>=',$v))
             ->when($r->date_to,fn($q,$v)=>$q->whereDate('sale_date','<=',$v))->when($r->customer_id,fn($q,$v)=>$q->where('customer_id',$v))
             ->latest('sale_date')->get()->map(function($s){$cogs=$s->items->sum(fn($i)=>$i->quantity*$i->unit_cost);$revenue=(float)$s->subtotal;
                 return ['sale_number'=>$s->sale_number,'date'=>$s->sale_date->format('Y-m-d'),'revenue'=>$revenue,'cogs'=>round($cogs,2),
                     'gross_profit'=>round($revenue-$cogs,2),'margin_percent'=>$revenue>0?round((($revenue-$cogs)/$revenue)*100,1):0];});
         $revenue=$rows->sum('revenue');$profit=$rows->sum('gross_profit');
-        $expenses=(float)Expense::where('status','posted')->when($r->date_from,fn($q,$v)=>$q->whereDate('expense_date','>=',$v))
+        $expenses=(float)Expense::where('financial_year_id',$year->id)->where('status','posted')->when($r->date_from,fn($q,$v)=>$q->whereDate('expense_date','>=',$v))
             ->when($r->date_to,fn($q,$v)=>$q->whereDate('expense_date','<=',$v))->sum('amount');
         return ['rows'=>$rows,'summary'=>['sales'=>$rows->count(),'revenue'=>$revenue,'cogs'=>$rows->sum('cogs'),'gross_profit'=>$profit,
             'operating_expenses'=>$expenses,'net_profit'=>$profit-$expenses,'margin_percent'=>$revenue>0?round(($profit/$revenue)*100,1):0]];
@@ -216,43 +223,50 @@ class OperationsController extends Controller {
 
     private function financialReport(Request $r): array
     {
-        $from = $r->date_from ?: now()->startOfMonth()->toDateString();
-        $to = $r->date_to ?: now()->toDateString();
-        $payments = Payment::query()->where('is_reversed', false)
+        $year=$this->reportYear($r);
+        $from = $r->date_from ?: $year->start_date->toDateString();
+        $to = $r->date_to ?: ($year->status==='active'?min(now()->toDateString(),$year->end_date->toDateString()):$year->end_date->toDateString());
+        $payments = Payment::query()->where('financial_year_id',$year->id)->where('is_reversed', false)
             ->whereBetween('payment_date', [$from, $to])
             ->when($r->payment_method, fn($q,$method)=>$q->where('payment_method',$method))
             ->get();
         $methods = ['cash'=>'Cash','bank_transfer'=>'Bank transfer','card'=>'Card','other'=>'Other'];
-        $rows = collect($methods)->map(function($label,$method)use($payments){
+        $rows = collect($methods)->map(function($label,$method)use($payments,$year,$from){
             $methodPayments=$payments->where('payment_method',$method);
             $received=(float)$methodPayments->where('payment_type','customer_payment')->sum('amount');
             $paid=(float)$methodPayments->where('payment_type','!=','customer_payment')->sum('amount');
-            return ['payment_method'=>$label,'received'=>$received,'paid'=>$paid,'net_movement'=>$received-$paid,
+            $opening=(float)FinancialYearAccountBalance::where('financial_year_id',$year->id)->where('account_key',$method)->value('opening_balance');
+            $prior=Payment::where('financial_year_id',$year->id)->where('payment_method',$method)->where('is_reversed',false)->whereDate('payment_date','<',$from)->get();
+            $opening+=(float)$prior->where('payment_type','customer_payment')->sum('amount')-(float)$prior->where('payment_type','!=','customer_payment')->sum('amount');
+            return ['payment_method'=>$label,'opening_balance'=>$opening,'received'=>$received,'paid'=>$paid,'net_movement'=>$received-$paid,'closing_balance'=>$opening+$received-$paid,
                 'receipt_vouchers'=>$methodPayments->where('payment_type','customer_payment')->count(),
                 'payment_vouchers'=>$methodPayments->where('payment_type','!=','customer_payment')->count()];
         })->values();
 
-        $receivables = Customer::query()->get()->map(function($customer)use($to){
-            $sales=(float)$customer->sales()->where('status','completed')->whereDate('sale_date','<=',$to)->sum('grand_total');
-            $received=(float)$customer->payments()->where('payment_type','customer_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
-            return ['party'=>$customer->name,'opening_balance'=>(float)$customer->opening_balance,'transactions'=>$sales,'settled'=>$received,'outstanding'=>max(0,(float)$customer->opening_balance+$sales-$received)];
+        $receivables = Customer::query()->get()->map(function($customer)use($to,$year){
+            $opening=app(FinancialYearService::class)->partyOpening($year,'customer',$customer->id,(float)$customer->opening_balance);
+            $sales=(float)$customer->sales()->where('financial_year_id',$year->id)->where('status','completed')->whereDate('sale_date','<=',$to)->sum('grand_total');
+            $received=(float)$customer->payments()->where('financial_year_id',$year->id)->where('payment_type','customer_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
+            return ['party'=>$customer->name,'opening_balance'=>$opening,'transactions'=>$sales,'settled'=>$received,'outstanding'=>max(0,$opening+$sales-$received)];
         })->filter(fn($row)=>$row['outstanding']>0)->sortByDesc('outstanding')->values();
-        $payables = Supplier::query()->get()->map(function($supplier)use($to){
-            $purchases=(float)$supplier->purchases()->where('status','completed')->whereDate('purchase_date','<=',$to)->sum('grand_total');
-            $paid=(float)$supplier->payments()->where('payment_type','supplier_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
-            return ['party'=>$supplier->name,'opening_balance'=>(float)$supplier->opening_balance,'transactions'=>$purchases,'settled'=>$paid,'outstanding'=>max(0,(float)$supplier->opening_balance+$purchases-$paid)];
+        $payables = Supplier::query()->get()->map(function($supplier)use($to,$year){
+            $opening=app(FinancialYearService::class)->partyOpening($year,'supplier',$supplier->id,(float)$supplier->opening_balance);
+            $purchases=(float)$supplier->purchases()->where('financial_year_id',$year->id)->where('status','completed')->whereDate('purchase_date','<=',$to)->sum('grand_total');
+            $paid=(float)$supplier->payments()->where('financial_year_id',$year->id)->where('payment_type','supplier_payment')->where('is_reversed',false)->whereDate('payment_date','<=',$to)->sum('amount');
+            return ['party'=>$supplier->name,'opening_balance'=>$opening,'transactions'=>$purchases,'settled'=>$paid,'outstanding'=>max(0,$opening+$purchases-$paid)];
         })->filter(fn($row)=>$row['outstanding']>0)->sortByDesc('outstanding')->values();
         $received=(float)$rows->sum('received');$paid=(float)$rows->sum('paid');
         $operatingExpenses=(float)$payments->where('payment_type','expense_payment')->sum('amount');
         $supplierPayments=(float)$payments->where('payment_type','supplier_payment')->sum('amount');
         $cash=$rows->firstWhere('payment_method','Cash');
         $bank=$rows->firstWhere('payment_method','Bank transfer');
-        return ['rows'=>$rows,'summary'=>['total_received'=>$received,'total_paid'=>$paid,'supplier_payments'=>$supplierPayments,'operating_expenses'=>$operatingExpenses,'net_cash_flow'=>$received-$paid,
+        return ['rows'=>$rows,'summary'=>['opening_cash_bank_balance'=>(float)$rows->sum('opening_balance'),'total_received'=>$received,'total_paid'=>$paid,'supplier_payments'=>$supplierPayments,'operating_expenses'=>$operatingExpenses,'net_cash_flow'=>$received-$paid,'closing_cash_bank_balance'=>(float)$rows->sum('closing_balance'),
             'cash_net_movement'=>$cash['net_movement']??0,'bank_net_movement'=>$bank['net_movement']??0,
             'customer_receivables'=>$receivables->sum('outstanding'),'supplier_payables'=>$payables->sum('outstanding'),
             'net_working_balance'=>$receivables->sum('outstanding')-$payables->sum('outstanding')],
             'details'=>['receivables'=>$receivables->take(10)->values(),'payables'=>$payables->take(10)->values()],
-            'period'=>['from'=>$from,'to'=>$to,'position_as_of'=>$to]];
+            'period'=>['financial_year'=>$year->name,'financial_year_id'=>$year->id,'from'=>$from,'to'=>$to,'position_as_of'=>$to]];
     }
+    private function reportYear(Request $r):FinancialYear{return $r->financial_year_name?FinancialYear::where('name',$r->financial_year_name)->firstOrFail():($r->financial_year_id?FinancialYear::findOrFail((int)$r->financial_year_id):app(FinancialYearContext::class)->financialYear());}
     private function ok($data,$message='Data retrieved successfully.',$status=200){return response()->json(['success'=>true,'message'=>$message,'data'=>$data],$status);}
 }

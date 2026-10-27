@@ -3,7 +3,7 @@ import {computed,onMounted,ref} from 'vue';
 import {useRoute,useRouter} from 'vue-router';
 import api from './services/api';
 import AppIcon from './components/common/AppIcon.vue';
-import {authCompanies,authPermissions,authToken,authUser,clearAuth,currentCompany,selectCompany,setAuth} from './services/auth';
+import {authCompanies,authPermissions,authToken,authUser,clearAuth,currentCompany,currentFinancialYear,selectCompany,setAuth} from './services/auth';
 
 const route=useRoute(),router=useRouter(),mobileOpen=ref(false);
 const logged=computed(()=>route.path!='/login'&&Boolean(authToken.value));
@@ -15,7 +15,7 @@ const groups=[
  {label:'Operations',links:[['/purchases','purchase','Purchases','purchases.view'],['/sales','sale','Sales','sales.view'],['/expenses','expense','Expenses','expenses.view'],['/payment-vouchers','payment-out','Payment vouchers','payments.view'],['/receipt-vouchers','receipt','Receipt vouchers','payments.view']]},
  {label:'Directory',links:[['/products','product','Products','products.view'],['/suppliers','supplier','Suppliers','suppliers.view'],['/customers','customer','Customers','customers.view']]},
  {label:'Insights',links:[['/stock-movements','stock','Stock ledger','stock.view'],['/reports','report','Reports','reports.view']]},
- {label:'Administration',links:[['/users','customer','User administration','users.manage'],['/company-settings','settings','Company settings','settings.manage'],['/product-settings','product','Product settings','settings.manage']]},
+ {label:'Administration',links:[['/users','customer','User administration','users.manage'],['/company-settings','settings','Company settings','settings.manage'],['/product-settings','product','Product settings','settings.manage'],['/financial-years','calendar','Financial years','financial_years.manage']]},
  {label:'Group',links:[['/companies','settings','Companies','companies.manage']]},
 ];
 const visibleGroups=computed(()=>groups.map(group=>({...group,links:group.links.filter(link=>permissionList.value.includes(link[3]))})).filter(group=>group.links.length));
@@ -37,7 +37,7 @@ onMounted(async()=>{
   <nav><section v-for="group in visibleGroups" :key="group.label"><div class="nav-label">{{group.label}}</div><RouterLink v-for="[to,icon,label] in group.links" :to="to" :key="to" @click="mobileOpen=false"><span class="nav-icon"><AppIcon :name="icon" :size="15"/></span>{{label}}</RouterLink></section></nav>
   <div class="sidebar-footer"><div class="user-chip"><span>{{user?.name?.slice(0,1).toUpperCase()||'U'}}</span><div><strong>{{user?.name||'User'}}</strong><small>{{user?.roles?.[0]?.name||'Assigned user'}}</small></div></div><button class="icon-button" title="Log out" @click="logout"><AppIcon name="logout"/></button></div>
  </aside>
- <div class="workspace"><header class="topbar"><button class="mobile-menu" @click="mobileOpen=true"><AppIcon name="menu" :size="20"/></button><div><span class="eyebrow">{{company.company_name}}</span><strong>{{title}}</strong></div><div class="topbar-actions"><select v-if="authCompanies.length>1" class="company-switcher" :value="currentCompany?.id" @change="changeCompany"><option v-for="item in authCompanies" :key="item.id" :value="item.id">{{item.name}}</option></select><span class="live-dot"></span><span>System online</span></div></header><main><RouterView/></main></div>
+ <div class="workspace"><header class="topbar"><button class="mobile-menu" @click="mobileOpen=true"><AppIcon name="menu" :size="20"/></button><div><span class="eyebrow">{{company.company_name}}</span><strong>{{title}}</strong></div><div class="topbar-actions"><select v-if="authCompanies.length>1" class="company-switcher" :value="currentCompany?.id" @change="changeCompany"><option v-for="item in authCompanies" :key="item.id" :value="item.id">{{item.name}}</option></select><span v-if="currentFinancialYear" class="financial-year-chip"><AppIcon name="calendar" :size="13"/>FY {{currentFinancialYear.name}}</span><span class="live-dot"></span><span>System online</span></div></header><main><RouterView/></main></div>
 </div>
 <RouterView v-else/>
 </template>

@@ -1,22 +1,26 @@
 <?php
 namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
-use App\Models\{Customer,Supplier};
+use App\Models\{Customer,FinancialYearPartyBalance,Supplier};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Tenancy\FinancialYearContext;
+use App\Services\FinancialYearService;
 class PartyController extends Controller {
     public function suppliers(Request $r){return $this->ok(Supplier::query()->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('name','like',"%$s%")->orWhere('phone','like',"%$s%")))->orderBy('name')->paginate(15));}
-    public function storeSupplier(Request $r){return $this->ok(Supplier::create($r->validate($this->supplierRules())), 'Supplier created successfully.',201);}
-    public function supplier(Supplier $supplier){return $this->ok($supplier->load('purchases','payments'));}
-    public function updateSupplier(Request $r,Supplier $supplier){$supplier->update($r->validate($this->supplierRules()));return $this->ok($supplier,'Supplier updated successfully.');}
-    public function supplierLedger(Supplier $supplier){$p=$supplier->purchases()->where('status','completed')->sum('grand_total');$paid=$supplier->payments()->where('is_reversed',false)->sum('amount');
-        return $this->ok(['party'=>$supplier,'opening_balance'=>(float)$supplier->opening_balance,'purchases'=>(float)$p,'payments'=>(float)$paid,'outstanding'=>(float)$supplier->opening_balance+$p-$paid,'transactions'=>['purchases'=>$supplier->purchases()->latest()->get(),'payments'=>$supplier->payments()->latest()->get()]]);}
+    public function storeSupplier(Request $r){$data=$r->validate($this->supplierRules());$supplier=DB::transaction(function()use($data){app(FinancialYearService::class)->lockActive();$party=Supplier::create($data);$this->syncOpening('supplier',$party->id,(float)$party->opening_balance);return $party;});return $this->ok($supplier, 'Supplier created successfully.',201);}
+    public function supplier(Supplier $supplier){$year=app(FinancialYearContext::class)->requireId();return $this->ok($supplier->load(['purchases'=>fn($q)=>$q->where('financial_year_id',$year),'payments'=>fn($q)=>$q->where('financial_year_id',$year)]));}
+    public function updateSupplier(Request $r,Supplier $supplier){$data=$r->validate($this->supplierRules());DB::transaction(function()use($supplier,$data){app(FinancialYearService::class)->lockActive();$supplier->update($data);$this->syncOpening('supplier',$supplier->id,(float)$supplier->opening_balance);});return $this->ok($supplier,'Supplier updated successfully.');}
+    public function supplierLedger(Supplier $supplier){$year=app(FinancialYearContext::class)->financialYear();$opening=app(FinancialYearService::class)->partyOpening($year,'supplier',$supplier->id,(float)$supplier->opening_balance);$p=$supplier->purchases()->where('financial_year_id',$year->id)->where('status','completed')->sum('grand_total');$paid=$supplier->payments()->where('financial_year_id',$year->id)->where('payment_type','supplier_payment')->where('is_reversed',false)->sum('amount');
+        return $this->ok(['party'=>$supplier,'financial_year'=>$year,'opening_balance'=>$opening,'purchases'=>(float)$p,'payments'=>(float)$paid,'outstanding'=>$opening+$p-$paid,'transactions'=>['purchases'=>$supplier->purchases()->where('financial_year_id',$year->id)->latest()->get(),'payments'=>$supplier->payments()->where('financial_year_id',$year->id)->latest()->get()]]);}
     public function customers(Request $r){return $this->ok(Customer::query()->when($r->search,fn($q,$s)=>$q->where(fn($x)=>$x->where('name','like',"%$s%")->orWhere('phone','like',"%$s%")))->orderBy('name')->paginate(15));}
-    public function storeCustomer(Request $r){return $this->ok(Customer::create($r->validate($this->customerRules())),'Customer created successfully.',201);}
-    public function customer(Customer $customer){return $this->ok($customer->load('sales','payments'));}
-    public function updateCustomer(Request $r,Customer $customer){$customer->update($r->validate($this->customerRules()));return $this->ok($customer,'Customer updated successfully.');}
-    public function customerLedger(Customer $customer){$s=$customer->sales()->where('status','completed')->sum('grand_total');$paid=$customer->payments()->where('is_reversed',false)->sum('amount');
-        return $this->ok(['party'=>$customer,'opening_balance'=>(float)$customer->opening_balance,'sales'=>(float)$s,'payments'=>(float)$paid,'outstanding'=>(float)$customer->opening_balance+$s-$paid,'transactions'=>['sales'=>$customer->sales()->latest()->get(),'payments'=>$customer->payments()->latest()->get()]]);}
+    public function storeCustomer(Request $r){$data=$r->validate($this->customerRules());$customer=DB::transaction(function()use($data){app(FinancialYearService::class)->lockActive();$party=Customer::create($data);$this->syncOpening('customer',$party->id,(float)$party->opening_balance);return $party;});return $this->ok($customer,'Customer created successfully.',201);}
+    public function customer(Customer $customer){$year=app(FinancialYearContext::class)->requireId();return $this->ok($customer->load(['sales'=>fn($q)=>$q->where('financial_year_id',$year),'payments'=>fn($q)=>$q->where('financial_year_id',$year)]));}
+    public function updateCustomer(Request $r,Customer $customer){$data=$r->validate($this->customerRules());DB::transaction(function()use($customer,$data){app(FinancialYearService::class)->lockActive();$customer->update($data);$this->syncOpening('customer',$customer->id,(float)$customer->opening_balance);});return $this->ok($customer,'Customer updated successfully.');}
+    public function customerLedger(Customer $customer){$year=app(FinancialYearContext::class)->financialYear();$opening=app(FinancialYearService::class)->partyOpening($year,'customer',$customer->id,(float)$customer->opening_balance);$s=$customer->sales()->where('financial_year_id',$year->id)->where('status','completed')->sum('grand_total');$paid=$customer->payments()->where('financial_year_id',$year->id)->where('payment_type','customer_payment')->where('is_reversed',false)->sum('amount');
+        return $this->ok(['party'=>$customer,'financial_year'=>$year,'opening_balance'=>$opening,'sales'=>(float)$s,'payments'=>(float)$paid,'outstanding'=>$opening+$s-$paid,'transactions'=>['sales'=>$customer->sales()->where('financial_year_id',$year->id)->latest()->get(),'payments'=>$customer->payments()->where('financial_year_id',$year->id)->latest()->get()]]);}
     private function supplierRules(){return ['name'=>'required|string|max:255','contact_person'=>'nullable|string|max:255','phone'=>'nullable|string|max:50','email'=>'nullable|email','address'=>'nullable|string','opening_balance'=>'nullable|numeric|min:0','notes'=>'nullable|string','is_active'=>'boolean'];}
     private function customerRules(){return ['name'=>'required|string|max:255','phone'=>'nullable|string|max:50','email'=>'nullable|email','address'=>'nullable|string','opening_balance'=>'nullable|numeric|min:0','notes'=>'nullable|string','is_active'=>'boolean'];}
+    private function syncOpening(string $type,int $partyId,float $balance):void{FinancialYearPartyBalance::updateOrCreate(['financial_year_id'=>app(FinancialYearContext::class)->requireId(),'party_type'=>$type,'party_id'=>$partyId],['opening_balance'=>$balance]);}
     private function ok($data,$message='Records retrieved successfully.',$status=200){return response()->json(['success'=>true,'message'=>$message,'data'=>$data],$status);}
 }

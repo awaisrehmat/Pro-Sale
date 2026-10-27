@@ -9,8 +9,9 @@ Project behavior and implementation progress are defined in `APPLICATION_FLOWS.m
 - Products, suppliers, customers, purchases, sales, expenses, payment/receipt vouchers, and stock ledger
 - Transactional inventory updates with row locking and negative-stock prevention
 - Weighted-average costing, saved sale cost, gross-profit reporting
+- Company-specific July-to-June financial years with date validation, closing locks, opening snapshots, and balance carry-forward
 - Safe purchase and sale cancellation with reversing movements and payments
-- Dashboard, stock/low-stock/purchase/sales/profit reports, search and pagination
+- Dashboard plus financial, expense, stock-ledger, stock/low-stock, purchase, sales, and profit reports with current/historical financial-year selection
 - Server-generated FPDF Purchase Vouchers, Sales Invoices, Receipt Vouchers, and Payment Vouchers
 - Administrator-managed users with active/inactive status and Administrator, Manager, and Operator roles
 - Configurable admin seed and walk-in customer
@@ -43,7 +44,7 @@ $env:SEED_DEMO_DATA='true'
 C:\php83\php.exe artisan db:seed
 ```
 
-The dataset includes eight products, four suppliers, walk-in plus five named customers, five purchases, six sales, partial balances, and stock adjustments. It is safe to rerun: seeded directory records are reused and demonstration transactions are not duplicated.
+The dataset includes eight products, four suppliers, walk-in plus five named customers, five purchases, six sales, six operating expenses with linked Payment Vouchers, partial balances, and stock adjustments. It is safe to rerun: seeded directory records are reused and demonstration transactions are not duplicated.
 
 ## Testing
 

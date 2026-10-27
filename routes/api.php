@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\{
     CompanySettingsController,
     CompanyAdministrationController,
     ExpenseController,
+    FinancialYearController,
     OperationsController,
     PartyController,
     PdfController,
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('login', [AuthController::class, 'login']);
 Route::get('company-profile', [CompanySettingsController::class, 'publicProfile']);
 
-Route::middleware(['auth:sanctum','company'])->group(function () {
+Route::middleware(['auth:sanctum','company','financial-year'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
     Route::get('user', function (Request $request) {
         $user = $request->user()->load('roles:id,name');
@@ -29,13 +30,18 @@ Route::middleware(['auth:sanctum','company'])->group(function () {
         return response()->json([
             'success' => true,
             'message' => 'User retrieved.',
-            'data' => ['user' => $user, 'permissions' => $permissions,'companies'=>$companies,'current_company'=>$request->attributes->get('company'),'company_profile'=>\App\Models\Setting::company()],
+            'data' => ['user' => $user, 'permissions' => $permissions,'companies'=>$companies,'current_company'=>$request->attributes->get('company'),'current_financial_year'=>$request->attributes->get('financial_year'),'company_profile'=>\App\Models\Setting::company()],
         ]);
     });
 
     Route::get('companies', [CompanyAdministrationController::class, 'index']);
     Route::post('companies', [CompanyAdministrationController::class, 'store'])->middleware('permission:companies.manage');
     Route::put('companies/{company}', [CompanyAdministrationController::class, 'update'])->middleware('permission:companies.manage');
+
+    Route::get('financial-years', [FinancialYearController::class, 'index']);
+    Route::get('financial-years/{financialYear}/preview', [FinancialYearController::class, 'preview'])->middleware('permission:financial_years.manage');
+    Route::put('financial-years/{financialYear}/openings', [FinancialYearController::class, 'updateOpenings'])->middleware('permission:financial_years.manage');
+    Route::post('financial-years/{financialYear}/close', [FinancialYearController::class, 'close'])->middleware('permission:financial_years.manage');
 
     Route::get('dashboard', [OperationsController::class, 'dashboard'])->middleware('permission:dashboard.view');
 

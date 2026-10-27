@@ -5,10 +5,12 @@ use App\Support\Numbers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Arr;
+use App\Tenancy\FinancialYearContext;
 class SaleService {
     public function __construct(private StockService $stock){}
     public function create(array $data,int $userId): Sale {
         return DB::transaction(function()use($data,$userId){
+            app(FinancialYearService::class)->lockActive();
             $subtotal=collect($data['items'])->sum(fn($i)=>round($i['quantity']*$i['unit_price']-($i['discount']??0),2));
             $total=round($subtotal-($data['discount']??0)+($data['tax']??0),2); $paid=(float)($data['paid_amount']??0);
             if($paid>$total) throw ValidationException::withMessages(['paid_amount'=>'Paid amount cannot exceed grand total.']);
@@ -28,7 +30,9 @@ class SaleService {
     }
     public function cancel(Sale $sale,int $userId): Sale {
         return DB::transaction(function()use($sale,$userId){
+            app(FinancialYearService::class)->lockActive();
             $sale=Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            if($sale->financial_year_id!==app(FinancialYearContext::class)->requireId())throw ValidationException::withMessages(['status'=>'A sale from a closed financial year cannot be cancelled.']);
             if($sale->status==='cancelled') throw ValidationException::withMessages(['status'=>'Sale is already cancelled.']);
             foreach($sale->items as $item){$p=Product::query()->lockForUpdate()->findOrFail($item->product_id);
                 $this->stock->move($p,(float)$item->quantity,0,'sale_cancellation',$sale,$sale->sale_number,(float)$item->unit_cost,$userId);}

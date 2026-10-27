@@ -4,33 +4,37 @@ use App\Models\{Customer,Payment,Purchase,Sale,Supplier};
 use App\Support\Numbers;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Tenancy\FinancialYearContext;
 
 class PaymentService
 {
     public function record(array $data, int $userId): Payment
     {
         return DB::transaction(function () use ($data, $userId) {
+            app(FinancialYearService::class)->lockActive();
             $amount = (float) $data['amount'];
             $document = null;
+            $year=app(FinancialYearContext::class)->financialYear();
+            $financialYears=app(FinancialYearService::class);
 
             if ($data['payment_type'] === 'supplier_payment') {
                 $party = Supplier::query()->lockForUpdate()->findOrFail($data['supplier_id']);
-                $partyOutstanding = (float) $party->opening_balance
-                    + (float) $party->purchases()->where('status', 'completed')->sum('grand_total')
-                    - (float) $party->payments()->where('is_reversed', false)->sum('amount');
+                $partyOutstanding = $financialYears->partyOpening($year,'supplier',$party->id,(float)$party->opening_balance)
+                    + (float) $party->purchases()->where('financial_year_id',$year->id)->where('status', 'completed')->sum('grand_total')
+                    - (float) $party->payments()->where('financial_year_id',$year->id)->where('payment_type','supplier_payment')->where('is_reversed', false)->sum('amount');
                 if (! empty($data['purchase_id'])) {
-                    $document = Purchase::query()->lockForUpdate()->where('supplier_id', $party->id)->where('status', 'completed')->findOrFail($data['purchase_id']);
+                    $document = Purchase::query()->lockForUpdate()->where('financial_year_id',$year->id)->where('supplier_id', $party->id)->where('status', 'completed')->findOrFail($data['purchase_id']);
                     $outstanding = min((float) $document->due_amount, $partyOutstanding);
                 } else {
                     $outstanding = $partyOutstanding;
                 }
             } else {
                 $party = Customer::query()->lockForUpdate()->findOrFail($data['customer_id']);
-                $partyOutstanding = (float) $party->opening_balance
-                    + (float) $party->sales()->where('status', 'completed')->sum('grand_total')
-                    - (float) $party->payments()->where('is_reversed', false)->sum('amount');
+                $partyOutstanding = $financialYears->partyOpening($year,'customer',$party->id,(float)$party->opening_balance)
+                    + (float) $party->sales()->where('financial_year_id',$year->id)->where('status', 'completed')->sum('grand_total')
+                    - (float) $party->payments()->where('financial_year_id',$year->id)->where('payment_type','customer_payment')->where('is_reversed', false)->sum('amount');
                 if (! empty($data['sale_id'])) {
-                    $document = Sale::query()->lockForUpdate()->where('customer_id', $party->id)->where('status', 'completed')->findOrFail($data['sale_id']);
+                    $document = Sale::query()->lockForUpdate()->where('financial_year_id',$year->id)->where('customer_id', $party->id)->where('status', 'completed')->findOrFail($data['sale_id']);
                     $outstanding = min((float) $document->due_amount, $partyOutstanding);
                 } else {
                     $outstanding = $partyOutstanding;

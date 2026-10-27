@@ -10,6 +10,8 @@ Backend code is under `app/Http`, `app/Models`, `app/Services`, `app/Enums`, and
 
 Products own stock movements and transaction items. Suppliers own purchases and supplier payments; customers own sales and customer payments. Purchases/sales have item rows. Stock adjustments are immutable reasons for manual movements. Payments may link to a party and transaction. Settings hold simple key/value configuration. Financial values use `decimal(15,2)` and quantities use `decimal(15,3)`.
 
+`financial_years` stores company-specific session boundaries and closing state. Party, stock, and payment-channel opening snapshots live in `financial_year_party_balances`, `financial_year_stock_balances`, and `financial_year_account_balances`. All transaction/ledger headers carry `financial_year_id` through `BelongsToFinancialYear`.
+
 ## Inventory transactions
 
 `PurchaseService` starts a database transaction, locks each product, computes totals and weighted-average cost, creates items, updates cached stock, writes movements, and writes an initial payment. The weighted average is:
@@ -26,11 +28,13 @@ Stock adjustments run through `StockService`; every cached-stock update has a ma
 
 Supplier outstanding equals opening balance plus completed purchases minus non-reversed supplier payments. Customer outstanding uses completed sales and customer payments. Reports are provided by `OperationsController`; add a report by adding a new match branch, route constraint, test, and Vue option.
 
+`ResolveFinancialYear` runs after company resolution. `FinancialYearService::ensureCurrent` establishes the active July-to-June session, while `FinancialYearRule` prevents dates outside it. `FinancialYearService::close` locks the year in a database transaction, calculates immutable closings from opening snapshots plus year activity, creates the next session, and carries balances forward. Operational endpoints use `currentFinancialYear()`; report endpoints resolve an explicit `financial_year_name` or `financial_year_id`. Never use `products.current_stock` to calculate a historical closing—replay that year's snapshot and stock movements.
+
 ## API
 
 Authentication: `POST /api/login`, `POST /api/logout`, `GET /api/user`.
 
-Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Expenses use `GET|POST /api/expenses`, `POST /api/expenses/{expense}/cancel`, and `/api/expenses/{expense}/pdf`; category administration uses `/api/expense-categories`. Creating an expense atomically creates an `expense_payment` Payment Voucher. Money out uses `GET|POST /api/payment-vouchers`; money in uses `GET|POST /api/receipt-vouchers`. Each register also has `/{payment}` and `/{payment}/pdf` routes that reject the opposite voucher type. Legacy `/api/payments` routes remain available for compatibility. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|low-stock|purchases|sales|expenses|profit|financial}`. User administration: `GET|POST /api/users`, `PUT /api/users/{user}`, and `GET /api/users/roles`.
+Resources: `/api/products`, `/api/suppliers`, `/api/customers`; party ledgers use `/{id}/ledger`. Transactions: `/api/purchases`, `/api/sales`, plus `POST /{id}/cancel`. Inventory: `GET /api/stock-movements`, `POST /api/stock-adjustments`. Expenses use `GET|POST /api/expenses`, `POST /api/expenses/{expense}/cancel`, and `/api/expenses/{expense}/pdf`; category administration uses `/api/expense-categories`. Creating an expense atomically creates an `expense_payment` Payment Voucher. Money out uses `GET|POST /api/payment-vouchers`; money in uses `GET|POST /api/receipt-vouchers`. Each register also has `/{payment}` and `/{payment}/pdf` routes that reject the opposite voucher type. Legacy `/api/payments` routes remain available for compatibility. Financial years use `GET /api/financial-years`, `GET /api/financial-years/{financialYear}/preview`, `PUT /api/financial-years/{financialYear}/openings`, and `POST /api/financial-years/{financialYear}/close`. Dashboard: `GET /api/dashboard`. Reports: `GET /api/reports/{stock|stock-ledger|low-stock|purchases|sales|expenses|profit|financial}`. User administration: `GET|POST /api/users`, `PUT /api/users/{user}`, and `GET /api/users/roles`.
 
 Successful responses contain `success`, `message`, and `data`. Validation failures contain `success=false`, `message`, and `errors`. Form requests validate transaction payloads; database constraints enforce identity and relationships.
 

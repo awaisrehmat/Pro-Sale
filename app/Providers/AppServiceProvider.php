@@ -12,6 +12,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Tenancy\CompanyContext::class);
+        $this->app->singleton(\App\Tenancy\FinancialYearContext::class);
     }
 
     /**

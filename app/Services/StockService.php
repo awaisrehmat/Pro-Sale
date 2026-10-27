@@ -14,6 +14,7 @@ class StockService {
     }
     public function adjust(array $data,int $userId): StockAdjustment {
         return DB::transaction(function()use($data,$userId){
+            app(FinancialYearService::class)->lockActive();
             $p=Product::query()->lockForUpdate()->findOrFail($data['product_id']);
             $a=StockAdjustment::create(['product_id'=>$p->id,'adjustment_date'=>$data['adjustment_date'],'adjustment_type'=>$data['adjustment_type'],
                 'quantity'=>$data['quantity'],'reason'=>$data['reason'],'created_by'=>$userId]);

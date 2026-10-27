@@ -2,6 +2,7 @@
 namespace Tests\Feature;
 use App\Models\{Company,Customer,ExpenseCategory,Group,Product,Supplier,User};
 use App\Tenancy\CompanyContext;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use Spatie\Permission\Models\{Permission,Role};
@@ -9,7 +10,7 @@ use Tests\TestCase;
 class InventoryFlowTest extends TestCase {
     use RefreshDatabase;
     private User $user; private Supplier $supplier; private Customer $customer; private Product $product; private Company $company;
-    protected function setUp():void{parent::setUp();$group=Group::create(['name'=>'Test Group','code'=>'TEST']);$this->company=Company::create(['group_id'=>$group->id,'name'=>'Test Company','code'=>'MAIN']);$this->user=User::factory()->create(['group_id'=>$group->id,'is_group_admin'=>true]);$this->user->companies()->attach($this->company);app(CompanyContext::class)->set($this->company);$this->withHeader('X-Company-ID',(string)$this->company->id);$permissions=['dashboard.view','products.view','products.manage','suppliers.view','suppliers.manage','customers.view','customers.manage','purchases.view','purchases.create','purchases.cancel','sales.view','sales.create','sales.cancel','stock.view','stock.adjust','payments.view','payments.create','expenses.view','expenses.create','expenses.cancel','expenses.manage','reports.view','reports.consolidated','users.manage','settings.manage','companies.manage'];foreach($permissions as $name)Permission::create(['name'=>$name,'guard_name'=>'sanctum']);$role=Role::create(['name'=>'Administrator','guard_name'=>'sanctum']);$role->givePermissionTo($permissions);$this->user->assignRole($role);Sanctum::actingAs($this->user);
+    protected function setUp():void{parent::setUp();$group=Group::create(['name'=>'Test Group','code'=>'TEST']);$this->company=Company::create(['group_id'=>$group->id,'name'=>'Test Company','code'=>'MAIN']);$this->user=User::factory()->create(['group_id'=>$group->id,'is_group_admin'=>true]);$this->user->companies()->attach($this->company);app(CompanyContext::class)->set($this->company);$this->withHeader('X-Company-ID',(string)$this->company->id);$permissions=['dashboard.view','products.view','products.manage','suppliers.view','suppliers.manage','customers.view','customers.manage','purchases.view','purchases.create','purchases.cancel','sales.view','sales.create','sales.cancel','stock.view','stock.adjust','payments.view','payments.create','expenses.view','expenses.create','expenses.cancel','expenses.manage','financial_years.manage','reports.view','reports.consolidated','users.manage','settings.manage','companies.manage'];foreach($permissions as $name)Permission::create(['name'=>$name,'guard_name'=>'sanctum']);$role=Role::create(['name'=>'Administrator','guard_name'=>'sanctum']);$role->givePermissionTo($permissions);$this->user->assignRole($role);Sanctum::actingAs($this->user);
         $this->supplier=Supplier::create(['name'=>'Supplier','opening_balance'=>0]);$this->customer=Customer::create(['name'=>'Customer','opening_balance'=>0]);
         $this->product=Product::create(['name'=>'Widget','sku'=>'W-1','unit'=>'piece','purchase_price'=>10,'sale_price'=>20,'average_cost'=>0,'minimum_stock_level'=>2,'current_stock'=>0]);}
     private function purchase(float $qty=10,float $price=10,float $paid=0){return $this->postJson('/api/purchases',['purchase_date'=>'2026-07-25','supplier_id'=>$this->supplier->id,'payment_method'=>'cash','discount'=>0,'additional_cost'=>0,'paid_amount'=>$paid,'items'=>[['product_id'=>$this->product->id,'quantity'=>$qty,'unit_price'=>$price,'discount'=>0]]]);}
@@ -30,4 +31,48 @@ class InventoryFlowTest extends TestCase {
     public function test_expense_posts_payment_voucher_reports_and_reverses_safely():void{$category=ExpenseCategory::create(['name'=>'Utilities','is_active'=>true]);$expense=$this->postJson('/api/expenses',['expense_date'=>'2026-07-26','expense_category_id'=>$category->id,'payee_name'=>'Electric Supply Co.','amount'=>250,'payment_method'=>'bank_transfer','reference_number'=>'TX-100','notes'=>'Monthly bill'])->assertCreated()->assertJsonPath('data.expense_number','EX_G26-001')->assertJsonPath('data.payment.payment_number','PV_G26-001')->assertJsonPath('data.payment.payment_type','expense_payment')->json('data');$this->getJson('/api/expenses')->assertOk()->assertJsonPath('data.summary.filtered_total',250)->assertJsonPath('data.records.data.0.category.name','Utilities');$this->getJson('/api/payment-vouchers')->assertOk()->assertJsonPath('data.data.0.payee_name','Electric Supply Co.')->assertJsonPath('data.data.0.payment_number','PV_G26-001');$this->get('/api/expenses/'.$expense['id'].'/pdf')->assertOk()->assertHeader('content-type','application/pdf');$this->getJson('/api/reports/expenses?date_from=2026-07-01&date_to=2026-07-31')->assertOk()->assertJsonPath('data.summary.total_amount',250)->assertJsonPath('data.rows.0.payment_voucher','PV_G26-001');$this->getJson('/api/reports/financial?date_from=2026-07-01&date_to=2026-07-31')->assertOk()->assertJsonPath('data.summary.operating_expenses',250)->assertJsonPath('data.summary.total_paid',250)->assertJsonPath('data.summary.net_cash_flow',-250);$this->postJson('/api/expenses/'.$expense['id'].'/cancel')->assertOk()->assertJsonPath('data.status','cancelled')->assertJsonPath('data.payment.is_reversed',true);$this->getJson('/api/reports/financial?date_from=2026-07-01&date_to=2026-07-31')->assertOk()->assertJsonPath('data.summary.operating_expenses',0)->assertJsonPath('data.summary.total_paid',0);$this->deleteJson('/api/expense-categories/'.$category->id)->assertUnprocessable();}
     public function test_financial_report_reconciles_channels_receivables_and_payables():void{$this->purchase(10,10,25)->assertCreated();$this->sale(2,20,10)->assertCreated();$this->getJson('/api/reports/financial?date_from=2026-07-01&date_to=2026-07-31')->assertOk()->assertJsonPath('data.summary.total_received',10)->assertJsonPath('data.summary.total_paid',25)->assertJsonPath('data.summary.net_cash_flow',-15)->assertJsonPath('data.summary.customer_receivables',30)->assertJsonPath('data.summary.supplier_payables',75)->assertJsonPath('data.rows.0.payment_method','Cash')->assertJsonPath('data.rows.0.net_movement',-15);}
     public function test_product_stock_ledger_reports_every_in_and_out_movement():void{$this->purchase(10)->assertCreated();$this->sale(3)->assertCreated();$this->getJson('/api/reports/stock-ledger?product_id='.$this->product->id.'&date_from=2026-07-01&date_to=2026-07-31')->assertOk()->assertJsonPath('data.summary.opening_stock',0)->assertJsonPath('data.summary.total_in',10)->assertJsonPath('data.summary.total_out',3)->assertJsonPath('data.summary.closing_stock',7)->assertJsonPath('data.summary.chronology_issues',0)->assertJsonCount(2,'data.rows')->assertJsonPath('data.rows.0.stock_before',0)->assertJsonPath('data.rows.0.stock_after',10)->assertJsonPath('data.rows.1.stock_before',10)->assertJsonPath('data.rows.1.stock_after',7)->assertJsonPath('data.rows.0.source_document','PO_G26-001')->assertJsonPath('data.rows.1.source_document','SI_G26-001');}
+    public function test_financial_year_closing_locks_history_and_carries_correct_openings():void
+    {
+        Carbon::setTestNow('2027-06-30 17:00:00');
+        try {
+            $year=$this->getJson('/api/financial-years')->assertOk()->assertJsonPath('data.current.name','2026-2027')->json('data.current');
+            $this->putJson('/api/financial-years/'.$year['id'].'/openings',['account_balances'=>[
+                ['account_key'=>'cash','opening_balance'=>500],['account_key'=>'bank_transfer','opening_balance'=>100],
+                ['account_key'=>'card','opening_balance'=>0],['account_key'=>'other','opening_balance'=>0],
+            ]])->assertOk()->assertJsonPath('data.balances.summary.cash_bank_balance',600);
+            $this->purchase(10,10,40)->assertCreated();
+            $this->sale(3,20,10)->assertCreated();
+            $category=ExpenseCategory::create(['name'=>'Year-end charges','is_active'=>true]);
+            $this->postJson('/api/expenses',['expense_date'=>'2027-06-30','expense_category_id'=>$category->id,'payee_name'=>'Closing Costs','amount'=>25,'payment_method'=>'cash'])->assertCreated();
+
+            $this->getJson('/api/financial-years/'.$year['id'].'/preview')->assertOk()
+                ->assertJsonPath('data.balances.summary.supplier_payables',60)
+                ->assertJsonPath('data.balances.summary.customer_receivables',50)
+                ->assertJsonPath('data.balances.summary.inventory_quantity',7)
+                ->assertJsonPath('data.balances.summary.cash_bank_balance',545);
+
+            $this->postJson('/api/financial-years/'.$year['id'].'/close')->assertOk()
+                ->assertJsonPath('data.closed.status','closed')->assertJsonPath('data.current.name','2027-2028');
+            $nextId=(int)$this->getJson('/api/financial-years')->assertOk()->json('data.current.id');
+            $this->assertDatabaseHas('financial_year_party_balances',['financial_year_id'=>$nextId,'party_type'=>'supplier','party_id'=>$this->supplier->id,'opening_balance'=>60]);
+            $this->assertDatabaseHas('financial_year_party_balances',['financial_year_id'=>$nextId,'party_type'=>'customer','party_id'=>$this->customer->id,'opening_balance'=>50]);
+            $this->assertDatabaseHas('financial_year_stock_balances',['financial_year_id'=>$nextId,'product_id'=>$this->product->id,'opening_quantity'=>7]);
+            $this->assertDatabaseHas('financial_year_account_balances',['financial_year_id'=>$nextId,'account_key'=>'cash','opening_balance'=>445]);
+            $this->assertDatabaseHas('financial_year_account_balances',['financial_year_id'=>$nextId,'account_key'=>'bank_transfer','opening_balance'=>100]);
+            $this->putJson('/api/financial-years/'.$year['id'].'/openings',['account_balances'=>[
+                ['account_key'=>'cash','opening_balance'=>0],['account_key'=>'bank_transfer','opening_balance'=>0],
+                ['account_key'=>'card','opening_balance'=>0],['account_key'=>'other','opening_balance'=>0],
+            ]])->assertUnprocessable()->assertJsonValidationErrors('financial_year');
+            $this->getJson('/api/purchases')->assertOk()->assertJsonCount(0,'data.data');
+            $this->getJson('/api/reports/purchases?financial_year_name=2026-2027&date_from=2026-07-01&date_to=2027-06-30')->assertOk()->assertJsonPath('data.summary.grand_total',100);
+            $this->getJson('/api/reports/stock?financial_year_name=2026-2027')->assertOk()->assertJsonPath('data.rows.0.current_stock',7);
+
+            Carbon::setTestNow('2027-07-01 09:00:00');
+            $this->postJson('/api/payment-vouchers',['payment_date'=>'2027-07-01','supplier_id'=>$this->supplier->id,'amount'=>20,'payment_method'=>'bank_transfer'])->assertCreated();
+            $this->getJson('/api/suppliers/'.$this->supplier->id.'/ledger')->assertOk()->assertJsonPath('data.opening_balance',60)->assertJsonPath('data.outstanding',40);
+            $this->getJson('/api/reports/purchases?financial_year_name=2026-2027&date_from=2026-07-01&date_to=2027-06-30')->assertOk()->assertJsonPath('data.summary.grand_total',100);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 }

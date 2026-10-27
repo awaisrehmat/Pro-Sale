@@ -10,6 +10,7 @@ Stock Manager is a multi-company, role-based system for:
 - Strict company isolation for all operational and configuration records
 - User membership in one or more companies with an active-company switcher
 - Authorized consolidated reporting across the group
+- Company-specific financial years, immutable closing, and balance carry-forward
 
 - Products and current inventory
 - Product categories and dependent subcategories
@@ -29,11 +30,45 @@ Stock Manager is a multi-company, role-based system for:
 1. Login returns the user's active company memberships.
 2. The frontend stores the selected company and sends `X-Company-ID` on authenticated requests.
 3. The server verifies membership and establishes `CompanyContext` before route binding.
-4. Tenant model scopes restrict every operational query to the active company.
-5. New tenant rows automatically receive the active `company_id`.
-6. Group consolidation explicitly iterates active companies under group-admin authorization; ordinary screens never bypass tenant scope.
+4. The financial-year middleware resolves that company's active accounting session.
+5. Tenant model scopes restrict every operational query to the active company.
+6. New transaction rows automatically receive both `company_id` and `financial_year_id`.
+7. Group consolidation explicitly iterates active companies under group-admin authorization; ordinary screens never bypass tenant or financial-year scope.
 
-The system does not include approval workflows, quotations, requisitions, multiple warehouses, branches, or companies.
+The system does not include approval workflows, quotations, requisitions, multiple warehouses, or branch-level locations inside a company.
+
+## Financial Year Flow
+
+```text
+Resolve selected company
+    →
+Resolve its active July-to-June financial year
+    →
+Validate every posting date inside that year
+    →
+Stamp transaction and ledger rows with financial_year_id
+    →
+Operational screens read only the active year
+    →
+Administrator previews closing balances after year end
+    →
+Close and lock the year atomically
+    →
+Create next year with carried party, stock, and account openings
+    →
+Closed-year data remains available through the Reports selector
+```
+
+Carry-forward equations:
+
+```text
+Supplier closing = opening payable + completed purchases - valid supplier payments
+Customer closing = opening receivable + completed sales - valid customer receipts
+Product closing = opening quantity + quantity in - quantity out
+Account closing = opening balance + customer receipts - supplier/expense payments
+```
+
+Closing is rejected before the financial-year end date. Closed purchases, sales, and expenses cannot be cancelled; new entries cannot be dated into a closed session. Each company closes independently, while group reports select the same financial-year name across companies.
 
 ## Core Inventory Flow
 
@@ -334,6 +369,8 @@ Reports read committed transaction and ledger data:
 - Purchase report: completed and cancelled purchase records
 - Sales report: completed and cancelled sale records
 - Profit report: revenue, saved cost of goods sold, and gross profit
+- Expense report: posted/cancelled expenses by category and payment channel
+- Financial position: channel opening, receipts, payments, closing, receivables, and payables
 - Supplier ledger: opening balance, purchases, payments, and outstanding balance
 - Customer ledger: opening balance, sales, payments, and outstanding balance
 
@@ -382,6 +419,8 @@ Expected errors include duplicate SKU, invalid quantity, inactive product, insuf
 - [x] Guided purchase and sale entry with live line totals and sticky summary
 - [x] Responsive branded login and consistent action feedback
 - [x] Realistic transactionally consistent demonstration data
+- [x] Financial-year session stamping, closing lock, and opening-balance carry-forward
+- [x] Current-session operational views and selectable historical/consolidated reports
 - [x] Automated core-flow tests
 - [x] Production frontend build
 - [ ] Verification against a configured MySQL server

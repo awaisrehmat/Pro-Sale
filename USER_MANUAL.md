@@ -34,6 +34,22 @@ Administrators can open **Product Settings** under Administration to manage unit
 
 Record lists are paginated. Use **Previous** and **Next** below a table to move between pages. Search waits briefly while you type and then refreshes the results automatically.
 
+## Financial years and current session
+
+Each company has its own July-to-June financial year, such as **2026-2027**. The active year appears in the top navigation. Purchases, sales, expenses, payment/receipt vouchers, stock movements, and stock adjustments are automatically stamped with that session; their dates must fall inside it. Operational registers, party ledgers, stock history, and the dashboard show only the active session.
+
+Administrators can open **Administration → Financial years** to review the year-end position. The preview reconciles supplier payables, customer receivables, product quantities and valuation, and Cash/Bank/Card/Other balances. Closing is enabled only on or after the year-end date.
+
+For the first session, enter the brought-forward Cash, Bank Transfer, Card, and Other amounts in the **Opening** column and select **Save openings**. These amounts remain editable while the year is active. Later years receive them automatically from the prior closing.
+
+Closing a year is permanent. It locks cancellation or new posting into that year, creates the next active session, and carries forward these exact closing figures as its openings:
+
+- Each supplier payable and customer receivable
+- Each product's quantity, weighted-average cost, and stock value
+- Each payment channel's Cash/Bank/Card/Other balance
+
+Old transactions remain available in **Reports**. Select the required **Financial year** before applying report filters. A payment against a carried supplier/customer balance in the new year should use **General / opening balance** because the original invoice belongs to the closed session.
+
 ## Record a purchase
 
 1. Open Purchases and choose **New purchase**.
@@ -109,7 +125,7 @@ The PDF shows the party, amount in figures and words, payment method, reference,
 
 ## Reports
 
-Reports include Financial Position, Product Stock Ledger, Stock, Low Stock, Purchases, Sales, and Profit. Financial Position separates money received and paid by Cash, Bank Transfer, Card, and Other; it also shows net channel movement, customer receivables, supplier payables, and the largest outstanding party balances. Its date range controls payment movement, while receivables and payables are calculated as of the selected ending date.
+Reports include Financial Position, Expenses, Product Stock Ledger, Stock, Low Stock, Purchases, Sales, and Profit. Start by selecting the financial year. Closed sessions remain read-only but fully reportable. Financial Position separates opening balance, money received, money paid, and closing balance for Cash, Bank Transfer, Card, and Other; it also shows customer receivables, supplier payables, and the largest outstanding party balances. Its date range controls payment movement, while receivables and payables are calculated as of the selected ending date.
 
 Use **Product Stock Ledger** to audit when inventory entered or left the business. Select a product and date range to see opening stock, total quantity in, total quantity out, net change, closing stock, movement reason, source purchase/sale/adjustment number, stock before and after, unit cost, and notes. Leaving Product blank shows movements for all products; select one product when you need a meaningful single-unit opening and closing balance.
 

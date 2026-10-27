@@ -2,7 +2,7 @@
 namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 class Payment extends Model {
-    use \App\Models\Concerns\BelongsToCompany;
+    use \App\Models\Concerns\BelongsToCompany, \App\Models\Concerns\BelongsToFinancialYear;
     protected $guarded=[];
     protected function casts(): array { return ['payment_date'=>'date','is_reversed'=>'boolean']; }
     public function supplier(){ return $this->belongsTo(Supplier::class); }

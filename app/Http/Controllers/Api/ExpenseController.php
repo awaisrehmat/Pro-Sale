@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\{Expense,ExpenseCategory};
 use App\Services\ExpenseService;
 use App\Support\TenantRule;
+use App\Support\FinancialYearRule;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -13,7 +14,7 @@ class ExpenseController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Expense::with('category', 'payment')
+        $query = Expense::currentFinancialYear()->with('category', 'payment')
             ->when($request->search, function ($builder, $search) {
                 $builder->where(function ($filter) use ($search) {
                     $filter->where('expense_number', 'like', "%$search%")
@@ -33,8 +34,8 @@ class ExpenseController extends Controller
             'filtered_total' => (float) (clone $summaryQuery)->where('status', 'posted')->sum('amount'),
             'posted_count' => (clone $summaryQuery)->where('status', 'posted')->count(),
             'cancelled_count' => (clone $summaryQuery)->where('status', 'cancelled')->count(),
-            'today_total' => (float) Expense::where('status', 'posted')->whereDate('expense_date', today())->sum('amount'),
-            'month_total' => (float) Expense::where('status', 'posted')->whereBetween('expense_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])->sum('amount'),
+            'today_total' => (float) Expense::currentFinancialYear()->where('status', 'posted')->whereDate('expense_date', today())->sum('amount'),
+            'month_total' => (float) Expense::currentFinancialYear()->where('status', 'posted')->whereBetween('expense_date', [now()->startOfMonth()->toDateString(), now()->endOfMonth()->toDateString()])->sum('amount'),
         ];
 
         return $this->ok(['records' => $query->latest('expense_date')->latest('id')->paginate(20), 'summary' => $summary]);
@@ -48,7 +49,7 @@ class ExpenseController extends Controller
     public function store(Request $request, ExpenseService $service)
     {
         $data = $request->validate([
-            'expense_date' => 'required|date',
+            'expense_date' => ['required','date',FinancialYearRule::date()],
             'expense_category_id' => ['required', TenantRule::exists('expense_categories')->where('is_active', true)],
             'payee_name' => 'required|string|max:150',
             'amount' => 'required|numeric|gt:0',
